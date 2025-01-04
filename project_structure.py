@@ -49,6 +49,6 @@ for filepath in list_of_files:
     if not os.path.exists(filepath):
         with open(filepath, "w") as f:
             logging.info(f"Created empty file : {filepath}")
-        
+
     else:
         logging.info(f"File ({filepath}) already exists.")
