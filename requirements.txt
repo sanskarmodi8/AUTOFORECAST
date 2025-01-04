@@ -1,0 +1,24 @@
+# core dependencies
+sktime[all-extras]
+pandas
+numpy
+
+# visualization
+matplotlib
+plotly
+
+# utilities
+python-box
+pyYAML
+ensure
+joblib
+python-dotenv
+
+# user interface
+streamlit
+
+# code formatting
+black
+isort
+
+-e .
