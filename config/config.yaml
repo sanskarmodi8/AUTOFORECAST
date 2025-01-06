@@ -1,0 +1,23 @@
+data_transformation:
+  root_dir: artifacts/data_transformation
+  train_data_dir: artifacts/data_transformation/train
+  val_data_dir: artifacts/data_transformation/val
+  test_data_dir: artifacts/data_transformation/test
+
+model_training:
+  root_dir: artifacts/model_training
+  train_data_dir: artifacts/data_transformation/train
+  val_data_dir: artifacts/data_transformation/val
+  model: artifacts/model_training/model.joblib
+
+model_evaluation:
+  root_dir: artifacts/model_evaluation
+  model: artifacts/model_training/model.joblib
+  test_data_dir: artifacts/data_transformation/test
+  scores: artifacts/model_evaluation/scores.json
+  forecast_vs_actual_plot: artifacts/model_evaluation/forecast_vs_actual.png
+
+forecasting:
+  root_dir: artifacts/forecasting
+  model: artifacts/model_training/model.joblib
+  forecast_plot: artifacts/forecasting/forecast.png

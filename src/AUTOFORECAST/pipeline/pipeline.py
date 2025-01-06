@@ -1,5 +1,6 @@
 from zenml.pipelines import pipeline
 
+
 @pipeline
 def forecasting_pipeline(transform, train, evaluate, forecast):
     success = transform()

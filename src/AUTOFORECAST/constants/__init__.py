@@ -1,4 +1,6 @@
-DATA_DIR = "artifacts/data"
+from pathlib import Path
+
+DATA_DIR = Path("artifacts/data")
 AVAIL_TRANSFORMERS = [
     "Detrender",
     "BoxCoxTransformer",
@@ -36,3 +38,5 @@ AVAIL_METRICS = [
     "exp_var",
     "max_error",
 ]
+CONFIG_FILE_PATH = Path("config/config.yaml")
+PARAMS_FILE_PATH = Path("params.yaml")

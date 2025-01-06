@@ -8,8 +8,8 @@ import yaml
 from box import ConfigBox
 from box.exceptions import BoxValueError
 from ensure import ensure_annotations
-
 from MushroomClassification import logger
+
 
 @ensure_annotations
 def save_yaml(data: dict, filepath: str):
@@ -23,6 +23,7 @@ def save_yaml(data: dict, filepath: str):
 
     with open(filepath, "w") as file:
         yaml.dump(data, file)
+
 
 @ensure_annotations
 def read_yaml(path_to_yaml: Path) -> ConfigBox:
@@ -93,6 +94,7 @@ def load_json(path: Path) -> ConfigBox:
     logger.info(f"json file loaded succesfully from: {path}")
     return ConfigBox(content)
 
+
 @ensure_annotations
 def save_bin(data, path: Path):
     """save binary file
@@ -103,6 +105,7 @@ def save_bin(data, path: Path):
     """
     joblib.dump(value=data, filename=path)
     logger.info(f"binary file saved at: {path}")
+
 
 @ensure_annotations
 def load_bin(path: Path):

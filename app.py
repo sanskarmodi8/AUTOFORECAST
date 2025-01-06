@@ -1,20 +1,24 @@
-import os
 import csv
-import yaml
+import os
+
 import pandas as pd
 import streamlit as st
+import yaml
+import zenml
 
 from src.AUTOFORECAST.constants import (
     AVAIL_METRICS,
     AVAIL_MODELS,
     AVAIL_TRANSFORMERS,
     DATA_DIR,
+    PARAMS_FILE_PATH,
 )
 from src.AUTOFORECAST.pipeline.pipeline import forecasting_pipeline
 from src.AUTOFORECAST.pipeline.stage_01_data_transformation import transform_step
 from src.AUTOFORECAST.pipeline.stage_02_model_training import train_step
 from src.AUTOFORECAST.pipeline.stage_03_model_evaluation import evaluate_step
 from src.AUTOFORECAST.pipeline.stage_04_forecasting import forecast_step
+
 
 def process_data_upload(data):
     """Load the uploaded dataset correctly by determining the delimiter."""
@@ -23,6 +27,7 @@ def process_data_upload(data):
     df = pd.read_csv(data, sep=delimiter)
     df.columns = df.columns.str.lower()
     return df
+
 
 def set_datetime_index(df):
     """Set the datetime index based on available columns."""
@@ -65,18 +70,26 @@ if data is not None:
     df = set_datetime_index(df)
 
     # Select Target Column
-    target_column = st.selectbox("Select the target column:", df.columns.tolist(), help="Target column is the column you want to forecast.", placeholder="Select Target Column")
+    target_column = st.selectbox(
+        "Select the target column:",
+        df.columns.tolist(),
+        help="Target column is the column you want to forecast.",
+        placeholder="Select Target Column",
+    )
 
     # Select Univariate or Multivariate
     is_univariate = st.radio(
-        "Univariate or Multivariate?", ["Univariate", "Multivariate"], help="Univariate forecasting involves forecasting the target variable by itself, while multivariate forecasting involves forecasting the target variable using other indipendent/exogenous variables."
+        "Univariate or Multivariate?",
+        ["Univariate", "Multivariate"],
+        help="Univariate forecasting involves forecasting the target variable by itself, while multivariate forecasting involves forecasting the target variable using other indipendent/exogenous variables.",
     )
     if is_univariate == "Multivariate":
         exogenous_options = [col for col in df.columns if col != target_column]
         exogenous_columns = st.multiselect(
-            "Select exogenous columns:", exogenous_options,
+            "Select exogenous columns:",
+            exogenous_options,
             help="Exogenous columns are independent variables used to forecast the target variable.",
-            placeholder="Select Exogenous Columns"
+            placeholder="Select Exogenous Columns",
         )
         df = df[[target_column] + exogenous_columns]
     else:
@@ -114,7 +127,12 @@ metrics = st.multiselect(
 )
 
 # Forecast Horizon
-fh = st.number_input("Select forecast horizon:", min_value=1, help="Forecast horizon is the number of time steps to forecast into the future.", value=7)
+fh = st.number_input(
+    "Select forecast horizon:",
+    min_value=1,
+    help="Forecast horizon is the number of time steps to forecast into the future.",
+    value=7,
+)
 
 # Forecast Button
 if st.button("Forecast"):
@@ -124,14 +142,15 @@ if st.button("Forecast"):
         st.stop()
     # save the user provided data in yaml file
     params = {
-        "transformations": transformations,
-        "models": models,
-        "metrics": metrics,
+        "chosen_transformers": transformations,
+        "chosen_models": models,
+        "chosen_metrics": metrics,
         "fh": fh,
     }
-    save_yaml(params, "params.yaml")
+    save_yaml(params, PARAMS_FILE_PATH)
     with st.spinner("Forecasting..."):
         # Run the forecasting pipeline
+        zenml.init()
         forecasting_pipeline(
             transform_step(),
             train_step(),
