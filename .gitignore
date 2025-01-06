@@ -170,4 +170,7 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
+
+# ignore temp files and folders
 artifacts/
+params.yaml

@@ -21,4 +21,7 @@ streamlit
 black
 isort
 
+# Pipeline orchestration
+zenml
+
 -e .
