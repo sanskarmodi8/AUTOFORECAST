@@ -16,15 +16,22 @@ if data is not None:
     df = pd.read_csv(data, sep=delimeter)
     df.columns = df.columns.str.lower()
 
-    # select index col(s)
-    index_cols = st.multiselect(
-        "Select index column(s):",
-        df.columns.tolist(),
-        help="Index columns are used to uniquely identify each row in the dataset.",
-        placeholder="Select index column(s)",
-    )
-    if len(index_cols) > 0:
-        df.set_index(index_cols, inplace=True)
+    # set datetime index
+    if 'datetime' in df.columns:
+        df['datetime'] = pd.to_datetime(df['datetime'])
+        df.set_index('datetime', inplace=True)
+    elif 'date' in df.columns and 'time' in df.columns:
+        df['time'] = df['time'].str.replace('.', ':')
+        df['datetime'] = pd.to_datetime(df['date'] + ' ' + df['time'], format='mixed')
+        df = df.drop(['date', 'time'], axis=1)
+        df.set_index('datetime', inplace=True)
+    elif 'date' in df.columns:
+        df['date'] = pd.to_datetime(df['date'])
+        df.set_index('date', inplace=True)
+    elif 'time' in df.columns:
+        df['time'] = df['time'].str.replace('.', ':')
+        df['time'] = pd.to_datetime(df['time'])
+        df.set_index('time', inplace=True)
 
     # select endogenous variable
     target_column = st.selectbox(
@@ -49,6 +56,15 @@ if data is not None:
             placeholder="Select exogenous column(s)",
         )
         df = df[[target_column] + exogenous_columns]
+        st.write("Dataset preview :")
+        st.dataframe(df)
+        
+        # select fh
+        fh = st.number_input(
+            "Select the forecast horizon:",
+            min_value=1,
+            help="The forecast horizon is the number of steps ahead to forecast.",
+        )
 
     y = df[target_column]
     y.to_csv(f"{DATA_DIR}/y.csv")
@@ -71,7 +87,8 @@ options = [
     "Lagger",
 ]
 transformations = st.multiselect(
-    "Select Transformer(s)", options, placeholder="Select Transformer(s)"
+    "Select Transformer(s)", options, placeholder="Select Transformer(s)",
+    help="Transformers are used to preprocess the data before forecasting.",
 )
 
 # select model(s)
@@ -89,11 +106,11 @@ options = [
     "RandomForestForecaster",
     "BoxCoxBiasAdjustedForecaster",
 ]
-models = st.multiselect("Select Model(s)", options, placeholder="Select Model(s)")
+models = st.multiselect("Select Model(s)", options, placeholder="Select Model(s)", help="Models are used to forecast the target variable.")
 
 # select metric(s)
 options = ["mae", "mse", "rmse", "mape", "smape", "mdape", "r2", "exp_var", "max_error"]
-metrics = st.multiselect("Select Metric(s)", options, placeholder="Select Metric(s)")
+metrics = st.multiselect("Select Metric(s)", options, placeholder="Select Metric(s)", help="Metrics are used to evaluate the performance of the model.")
 
 # forecast
 if st.button("Forecast"):
