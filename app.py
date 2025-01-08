@@ -14,8 +14,10 @@ from src.AUTOFORECAST.constants import (
     PARAMS_FILE_PATH,
 )
 from src.AUTOFORECAST.pipeline.pipeline import forecasting_pipeline
-from src.AUTOFORECAST.pipeline.stage_01_data_transformation import transform_step
-from src.AUTOFORECAST.pipeline.stage_02_model_training import train_step
+from src.AUTOFORECAST.pipeline.stage_01_data_analysis import analyze_step
+from src.AUTOFORECAST.pipeline.stage_02_preprocessing_and_training import (
+    preprocess_and_train_step,
+)
 from src.AUTOFORECAST.pipeline.stage_03_model_evaluation import evaluate_step
 from src.AUTOFORECAST.pipeline.stage_04_forecasting import forecast_step
 
@@ -152,8 +154,8 @@ if st.button("Forecast"):
         # Run the forecasting pipeline
         zenml.init()
         forecasting_pipeline(
-            transform_step(),
-            train_step(),
+            analyze_step(),
+            preprocess_and_train_step(),
             evaluate_step(),
             forecast_step(),
         ).run()

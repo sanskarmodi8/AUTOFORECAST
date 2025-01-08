@@ -7,6 +7,7 @@ preprocessing_and_training:
   data_summary: artifacts/data_analysis/data_summary.json
   model: artifacts/preprocessing_and_training/model.joblib
   test_data_dir: artifacts/processing_and_training/test_data
+  best_params: artifacts/preprocessing_and_training/best_params.json
 
 model_evaluation:
   root_dir: artifacts/model_evaluation

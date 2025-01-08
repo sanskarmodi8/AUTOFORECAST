@@ -8,37 +8,38 @@ from sklearn.preprocessing import (
     RobustScaler,
     StandardScaler,
 )
-from sktime.forecasting.arima import ARIMA
-from sktime.forecasting.auto_arima import AutoARIMA
+from sktime.forecasting.arima import ARIMA, AutoARIMA
 from sktime.forecasting.base import ForecastingHorizon
 from sktime.forecasting.compose import Permute, TransformedTargetForecaster
+from sktime.forecasting.exp_smoothing import ExponentialSmoothing
+from sktime.forecasting.fbprophet import Prophet
 from sktime.forecasting.model_selection import (
     ExpandingWindowSplitter,
     ForecastingGridSearchCV,
     temporal_train_test_split,
 )
 from sktime.forecasting.naive import NaiveForecaster
-from sktime.forecasting.prophet import Prophet
-from sktime.forecasting.random_forest import RandomForestForecaster
-from sktime.forecasting.sarima import SARIMA
 from sktime.forecasting.sarimax import SARIMAX
-from sktime.forecasting.seasonal import SeasonalNaiveForecaster
 from sktime.forecasting.theta import ThetaForecaster
+from sktime.forecasting.trend import PolynomialTrendForecaster
 from sktime.performance_metrics.forecasting import MeanSquaredError
 from sktime.transformations.compose import OptionalPassthrough
-from sktime.transformations.series import (
-    Deseasonalizer,
-    Detrender,
-    ExponentTransformer,
-    Imputer,
-    LogTransformer,
-)
 from sktime.transformations.series.adapt import TabularToSeriesAdaptor
+from sktime.transformations.series.boxcox import LogTransformer
+from sktime.transformations.series.detrend import Deseasonalizer, Detrender
+from sktime.transformations.series.exponent import ExponentTransformer
+from sktime.transformations.series.impute import Imputer
 
 from AUTOFORECAST import logger
-from AUTOFORECAST.constants import AVAIL_MODELS_GRID, AVAIL_TRANSFORMERS_GRID, DATA_DIR
+from AUTOFORECAST.constants import (
+    AVAIL_MODELS_GRID,
+    AVAIL_TRANSFORMERS_GRID,
+    DATA_DIR,
+    MODELS_WITH_SP_PARAM,
+    TRANSFORMERS_WITH_SP_PARAM,
+)
 from AUTOFORECAST.entity.config_entity import PreprocessingAndTrainingConfig
-from AUTOFORECAST.utils.common import load_json, save_bin
+from AUTOFORECAST.utils.common import load_json, save_bin, save_json
 
 
 class PreprocessingAndTrainingStrategy(ABC):
@@ -72,68 +73,71 @@ class UnivariateStrategy(PreprocessingAndTrainingStrategy):
         )
         cv = ExpandingWindowSplitter(
             fh=fh, initial_window=int(len(y_train) * 0.5), step_length=1
-        )
+        )param_grid[transformer].update({"sp": [1, 4, 12, 365]})
 
-        # Build the parameter grid for tuning by adding chosen transformers and models
-        param_grid = {}
-        for transformer in config.chosen_transformers:
-            param_grid.update(AVAIL_TRANSFORMERS_GRID[transformer])
-            if transformer == "Deseasonalizer":
-                param_grid["estimator__deseasonalizer__sp"].append(
-                    data_summary.seasonal_period
-                )
+        # iterate over all models and store the best model, its parameters and the best score
+        best_model = None
+        best_params = None
+        best_score = None
+
         for model in config.chosen_models:
+            # Build the parameter grid for tuning by adding chosen transformers and models
+            logger.info(f"Building parameter grid for {model}")
+            param_grid = {}
+            for transformer in config.chosen_transformers:
+                param_grid.update(AVAIL_TRANSFORMERS_GRID[transformer])
+                # add the calculated seasonal period to the grid of the transformer requiring sp
+                for t in TRANSFORMERS_WITH_SP_PARAM:
+                    if transformer == t and data_summary.seasonal_period not in param_grid["estimator__" + transformer + "__sp"]:
+                        param_grid["estimator__" + transformer + "__sp"].append(data_summary.seasonal_period)
             param_grid.update(AVAIL_MODELS_GRID[model])
+            # add the calculated seasonal period to the grid of the model requiring sp
+            if model in MODELS_WITH_SP_PARAM and data_summary.seasonal_period not in param_grid["forecaster__sp"]:
+                param_grid["forecaster__sp"].append(data_summary.seasonal_period)
 
-        # Add the transformers and models to the pipeline
-        steps = []
+                
+            # Add the transformers and models to the pipeline
+            steps = []
 
-        for transformer in config.chosen_transformers:
-            if transformer == "Detrender":
-                steps.append(("detrender", OptionalPassthrough(Detrender())))
-            if transformer == "LogTransformer":
-                steps.append(("logtransformer", OptionalPassthrough(LogTransformer())))
-            if transformer == "ExponentTransformer":
-                steps.append(
-                    ("exponenttransformer", OptionalPassthrough(ExponentTransformer()))
-                )
-            if transformer == "Imputer":
-                steps.append(("imputer", OptionalPassthrough(Imputer())))
-            if transformer == "MinMaxScaler":
-                steps.append(
-                    (
-                        "scaler",
-                        OptionalPassthrough(TabularToSeriesAdaptor(MinMaxScaler())),
+            for transformer in config.chosen_transformers:
+                if transformer == "Detrender":
+                    steps.append(("detrender", OptionalPassthrough(Detrender())))
+                if transformer == "LogTransformer":
+                    steps.append(("logtransformer", OptionalPassthrough(LogTransformer())))
+                if transformer == "ExponentTransformer":
+                    steps.append(
+                        ("exponenttransformer", OptionalPassthrough(ExponentTransformer()))
                     )
-                )
-            if transformer == "Deseasonalizer":
-                steps.append(("deseasonalizer", OptionalPassthrough(Deseasonalizer())))
-            if transformer == "StandardScaler":
-                steps.append(("scaler", OptionalPassthrough(StandardScaler())))
-            if transformer == "PowerTransformer":
-                steps.append(
-                    (
-                        "powertransformer",
-                        OptionalPassthrough(TabularToSeriesAdaptor(PowerTransformer())),
+                if transformer == "Imputer":
+                    steps.append(("imputer", OptionalPassthrough(Imputer())))
+                if transformer == "MinMaxScaler":
+                    steps.append(
+                        (
+                            "scaler",
+                            OptionalPassthrough(TabularToSeriesAdaptor(MinMaxScaler())),
+                        )
                     )
-                )
-            if transformer == "RobustScaler":
-                steps.append(
-                    (
-                        "scaler",
-                        OptionalPassthrough(TabularToSeriesAdaptor(RobustScaler())),
+                if transformer == "Deseasonalizer":
+                    steps.append(("deseasonalizer", OptionalPassthrough(Deseasonalizer())))
+                if transformer == "StandardScaler":
+                    steps.append(("scaler", OptionalPassthrough(StandardScaler())))
+                if transformer == "PowerTransformer":
+                    steps.append(
+                        (
+                            "powertransformer",
+                            OptionalPassthrough(TabularToSeriesAdaptor(PowerTransformer())),
+                        )
                     )
-                )
+                if transformer == "RobustScaler":
+                    steps.append(
+                        (
+                            "scaler",
+                            OptionalPassthrough(TabularToSeriesAdaptor(RobustScaler())),
+                        )
+                    )
 
-        for model in config.chosen_models:
-            if model == "ARIMA":
-                steps.append(("forecaster", ARIMA()))
-            elif model == "SARIMA":
-                steps.append(("forecaster", SARIMA()))
-            elif model == "SARIMAX":
+            if model == "SARIMAX":
                 steps.append(("forecaster", SARIMAX()))
-            elif model == "RandomForestForecaster":
-                steps.append(("forecaster", RandomForestForecaster()))
             elif model == "PolynomialTrendForecaster":
                 steps.append(("forecaster", PolynomialTrendForecaster()))
             elif model == "ExponentialSmoothing":
@@ -146,156 +150,45 @@ class UnivariateStrategy(PreprocessingAndTrainingStrategy):
                 steps.append(("forecaster", AutoARIMA()))
             elif model == "Prophet":
                 steps.append(("forecaster", Prophet()))
-            elif model == "SeasonalNaiveForecaster":
-                steps.append(("forecaster", SeasonalNaiveForecaster()))
+            elif model == "ARIMA":
+                steps.append(("forecaster", ARIMA()))
 
-        # get permutations of steps with forecaster as the last step and update param_grid
-        forecaster_name = steps[-1][0]
-        transformers_names = [step[0] for step in steps[:-1]]
-        permutations = list(itertools.permutations(transformers_names))
-        permutations = [list(perm) + [forecaster_name] for perm in permutations]
-        param_grid.update({"permutation": permutations})
+            # get permutations of steps with forecaster as the last step and update param_grid
+            forecaster_name = steps[-1][0]
+            transformers_names = [step[0] for step in steps[:-1]]
+            permutations = list(itertools.permutations(transformers_names))
+            permutations = [list(perm) + [forecaster_name] for perm in permutations]
+            param_grid.update({"permutation": permutations})
 
-        # perform grid search cv
-        pipe_y = TransformedTargetForecaster(steps=steps)
-        permuted_y = Permute(estimator=pipe_y, permutation=None)
+            # perform grid search cv
+            pipe_y = TransformedTargetForecaster(steps=steps)
+            permuted_y = Permute(estimator=pipe_y, permutation=None)
 
-        logger.info("Performing grid search cv")
-        gscv = ForecastingGridSearchCV(
-            forecaster=permuted_y,
-            param_grid=param_grid,
-            cv=cv,
-            verbose=1,
-            scoring=MeanSquaredError(square_root=True),
-            error_score="raise",
-        )
-        gscv.fit(y=y_train, fh=fh)
+            logger.info(f"Performing grid search cv for model {model}")
+            gscv = ForecastingGridSearchCV(
+                forecaster=permuted_y,
+                param_grid=param_grid,
+                cv=cv,
+                verbose=1,
+                scoring=MeanSquaredError(square_root=True),
+                error_score="raise",
+            )
+            gscv.fit(y=y_train, fh=fh)
 
-        # Save the best model
-        best_model = gscv.best_estimator_
+            # Store the best model
+            if best_score is None or gscv.best_score_ < best_score:
+                best_model = gscv.best_estimator_
+                best_params = {'best_forecaster':model,'best_params':gscv.best_params_}
+        
+        # Save the best model and its parameters
         save_bin(best_model, config.model)
-        logger.info("Saved the best model")
+        save_json(best_params, config.best_params)
+
 
 
 class MultivariateStrategy(PreprocessingAndTrainingStrategy):
     def run(self, y, X, config, data_summary):
-        logger.info("Running multivariate strategy")
-        logger.info("Splitting data into train and test")
-
-        # Split the data
-        y_train, y_test, X_train, X_test = temporal_train_test_split(
-            y, X, test_size=0.2
-        )
-
-        # Save test data for later evaluation
-        y_test.to_csv(config.test_data_dir / "y.csv")
-        X_test.to_csv(config.test_data_dir / "X.csv")
-
-        # Create expanding window splitter for cross-validation
-        fh = ForecastingHorizon(y_test.index, is_relative=False).to_relative(
-            y_train.index[-1]
-        )
-        cv = ExpandingWindowSplitter(
-            fh=fh, initial_window=int(len(y_train) * 0.5), step_length=1
-        )
-
-        # Build the parameter grid for tuning by adding chosen transformers and models
-        param_grid = {}
-        for transformer in config.chosen_transformers:
-            param_grid.update(AVAIL_TRANSFORMERS_GRID[transformer])  # for X
-            param_grid.update(
-                "estimator__forecaster__" + AVAIL_TRANSFORMERS_GRID[transformer]
-            )  # for y
-            if transformer == "Deseasonalizer":
-                param_grid["estimator__deseasonalizer__sp"].append(
-                    data_summary.seasonal_period
-                )
-        for model in config.chosen_models:
-            param_grid.update(
-                "estimator__forecaster__" + AVAIL_MODELS_GRID[model]
-            )  # for y
-
-        # Add the transformers and models to the pipeline
-        steps = []
-
-        for transformer in config.chosen_transformers:
-            if transformer == "Detrender":
-                steps.append(("detrender", OptionalPassthrough(Detrender())))
-            if transformer == "LogTransformer":
-                steps.append(("logtransformer", OptionalPassthrough(LogTransformer())))
-            if transformer == "ExponentTransformer":
-                steps.append(
-                    ("exponenttransformer", OptionalPassthrough(ExponentTransformer()))
-                )
-            if transformer == "Imputer":
-                steps.append(("imputer", OptionalPassthrough(Imputer())))
-            if transformer == "Deseasonalizer":
-                steps.append(("deseasonalizer", OptionalPassthrough(Deseasonalizer())))
-            if transformer == "StandardScaler":
-                steps.append(("standardscaler", OptionalPassthrough(StandardScaler())))
-            if transformer == "MinMaxScaler":
-                steps.append(("minmaxscaler", OptionalPassthrough(MinMaxScaler())))
-            if transformer == "PowerTransformer":
-                steps.append(
-                    ("powerttransformer", OptionalPassthrough(PowerTransformer()))
-                )
-            if transformer == "RobustScaler":
-                steps.append(("robustscaler", OptionalPassthrough(RobustScaler())))
-
-        for model in config.chosen_models:
-            if model == "ARIMA":
-                steps.append(("forecaster", ARIMA()))
-            elif model == "ThetaForecaster":
-                steps.append(("forecaster", ThetaForecaster()))
-            elif model == "NaiveForecaster":
-                steps.append(("forecaster", NaiveForecaster()))
-            elif model == "AutoARIMA":
-                steps.append(("forecaster", AutoARIMA()))
-            elif model == "Prophet":
-                steps.append(("forecaster", Prophet()))
-            elif model == "SeasonalNaiveForecaster":
-                steps.append(("forecaster", SeasonalNaiveForecaster()))
-            elif model == "PolynomialTrendForecaster":
-                steps.append(("forecaster", PolynomialTrendForecaster()))
-            elif model == "RandomForestForecaster":
-                steps.append(("forecaster", RandomForestForecaster()))
-            elif model == "SARIMA":
-                steps.append(("forecaster", SARIMA()))
-            elif model == "SARIMAX":
-                steps.append(("forecaster", SARIMAX()))
-            elif model == "ExponentialSmoothing":
-                steps.append(("forecaster", ExponentialSmoothing()))
-
-        # get permutations of steps with forecaster as the last step and update param_grid
-        forecaster_name = steps[-1][0]
-        transformers_names = [step[0] for step in steps[:-1]]
-        permutations = list(itertools.permutations(transformers_names))
-        permutations = [list(perm) + [forecaster_name] for perm in permutations]
-        param_grid.update({"permutation": permutations})  # for X
-        param_grid.update({"estimator__forecaster__permutation": permutations})  # for y
-
-        # perform grid search cv
-        logger.info("Performing grid search cv")
-        pipe_y = TransformedTargetForecaster(steps=steps)
-        permuted_y = Permute(estimator=pipe_y, permutation=None)
-        steps_x = steps[:-1]
-        steps_x.append(("forecaster", permuted_y))
-        pipe_x = TransformedTargetForecaster(steps=steps_x)
-        permuted_x = Permute(estimator=pipe_x, permutation=None)
-        gscv = ForecastingGridSearchCV(
-            forecaster=permuted_x,
-            param_grid=param_grid,
-            cv=cv,
-            verbose=1,
-            scoring=MeanSquaredError(square_root=True),
-            error_score="raise",
-        )
-        gscv.fit(y=y_train, X=X_train, fh=fh)
-
-        # Save the best model
-        best_model = gscv.best_estimator_
-        save_bin(best_model, config.model)
-        logger.info("Saved the best model")
+        pass
 
 
 class PreprocessingAndTraining:

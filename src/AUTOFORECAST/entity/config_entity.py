@@ -18,6 +18,7 @@ class PreprocessingAndTrainingConfig:
     chosen_transformers: list
     chosen_models: list
     data_summary: Path
+    best_params: dict
 
 
 @dataclass(frozen=True)

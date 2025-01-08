@@ -32,6 +32,7 @@ class ConfigurationManager:
             chosen_transformers=self.params.chosen_transformers,
             chosen_models=self.params.chosen_models,
             data_summary=config.data_summary,
+            best_params=config.best_params,
         )
 
     def get_model_evaluation_config(self) -> ModelEvaluationConfig:

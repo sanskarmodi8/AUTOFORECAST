@@ -1,8 +1,8 @@
 from zenml.steps import step
 
+from AUTOFORECAST import logger
 from AUTOFORECAST.components.preprocessing_and_training import PreprocessingAndTraining
 from AUTOFORECAST.config.configuration import ConfigurationManager
-from AUTOFORECAST.utils.logger import logger
 
 STAGE_NAME = "PREPROCESSING AND MODEL TRAINING STAGE"
 

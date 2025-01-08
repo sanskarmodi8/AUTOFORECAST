@@ -8,7 +8,8 @@ import yaml
 from box import ConfigBox
 from box.exceptions import BoxValueError
 from ensure import ensure_annotations
-from MushroomClassification import logger
+
+from AUTOFORECAST import logger
 
 
 @ensure_annotations
