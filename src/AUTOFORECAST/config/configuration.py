@@ -2,10 +2,10 @@ from pathlib import Path
 
 from AUTOFORECAST.constants import CONFIG_FILE_PATH, DATA_DIR, PARAMS_FILE_PATH
 from AUTOFORECAST.entity.config_entity import (
-    DataTransformationConfig,
+    DataAnalysisConfig,
     ForecastingConfig,
     ModelEvaluationConfig,
-    ModelTrainingConfig,
+    PreprocessingAndTrainingConfig,
 )
 from AUTOFORECAST.utils.common import create_directories, read_yaml
 
@@ -15,34 +15,23 @@ class ConfigurationManager:
         self.params = read_yaml(PARAMS_FILE_PATH)
         self.config = read_yaml(CONFIG_FILE_PATH)
 
-    def get_data_transformation_config(self) -> DataTransformationConfig:
-        config = self.config.data_transformation
-        create_directories(
-            [
-                Path(config.root_dir),
-                Path(config.train_data_dir),
-                Path(config.val_data_dir),
-                Path(config.test_data_dir),
-            ]
-        )
-        return DataTransformationConfig(
-            root_dir=config.root_dir,
-            raw_data_dir=DATA_DIR,
-            train_data_dir=config.train_data_dir,
-            val_data_dir=config.val_data_dir,
-            test_data_dir=config.test_data_dir,
-            chosen_transformers=self.params.chosen_transformers,
+    def get_data_analysis_config(self) -> DataAnalysisConfig:
+        config = self.config.data_analysis
+        create_directories([Path(config.root_dir)])
+        return DataAnalysisConfig(
+            root_dir=config.root_dir, data_summary=config.data_summary
         )
 
-    def get_model_training_config(self) -> ModelTrainingConfig:
-        config = self.config.model_training
-        create_directories([Path(config.root_dir)])
-        return ModelTrainingConfig(
+    def get_preprocessing_and_training_config(self) -> PreprocessingAndTrainingConfig:
+        config = self.config.preprocessing_and_training
+        create_directories([Path(config.root_dir), Path(config.test_data_dir)])
+        return PreprocessingAndTrainingConfig(
             root_dir=config.root_dir,
             model=config.model,
-            train_data_dir=config.train_data_dir,
-            val_data_dir=config.val_data_dir,
+            test_data_dir=config.test_data_dir,
+            chosen_transformers=self.params.chosen_transformers,
             chosen_models=self.params.chosen_models,
+            data_summary=config.data_summary,
         )
 
     def get_model_evaluation_config(self) -> ModelEvaluationConfig:

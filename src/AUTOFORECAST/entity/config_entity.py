@@ -5,22 +5,19 @@ from box import ConfigBox
 
 
 @dataclass(frozen=True)
-class DataTransformationConfig:
+class DataAnalysisConfig:
     root_dir: Path
-    raw_data_dir: Path
-    train_data_dir: Path
-    val_data_dir: Path
-    test_data_dir: Path
-    chosen_transformers: list
+    data_summary: Path
 
 
 @dataclass(frozen=True)
-class ModelTrainingConfig:
+class PreprocessingAndTrainingConfig:
     root_dir: Path
-    train_data_dir: Path
-    val_data_dir: Path
     model: Path
+    test_data_dir: Path
+    chosen_transformers: list
     chosen_models: list
+    data_summary: Path
 
 
 @dataclass(frozen=True)
