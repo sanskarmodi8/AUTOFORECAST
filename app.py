@@ -14,19 +14,19 @@ from src.AUTOFORECAST.constants import (
     PARAMS_FILE_PATH,
 )
 from src.AUTOFORECAST.pipeline.pipeline import forecasting_pipeline
-from src.AUTOFORECAST.pipeline.stage_01_data_analysis import analyze_step
-from src.AUTOFORECAST.pipeline.stage_02_preprocessing_and_training import (
+from src.AUTOFORECAST.pipeline.stage_01_preprocessing_and_training import (
     preprocess_and_train_step,
 )
-from src.AUTOFORECAST.pipeline.stage_03_model_evaluation import evaluate_step
-from src.AUTOFORECAST.pipeline.stage_04_forecasting import forecast_step
+from src.AUTOFORECAST.pipeline.stage_02_model_evaluation import evaluate_step
+from src.AUTOFORECAST.pipeline.stage_03_forecasting import forecast_step
+from src.AUTOFORECAST.utils.common import save_yaml
 
 
 def process_data_upload(data):
     """Load the uploaded dataset correctly by determining the delimiter."""
     content = data.getvalue().decode("utf-8")
     delimiter = csv.Sniffer().sniff(content).delimiter
-    df = pd.read_csv(data, sep=delimiter)
+    df = pd.read_csv(data, sep=delimiter, index_col=0)
     df.columns = df.columns.str.lower()
     return df
 
@@ -64,7 +64,7 @@ def save_final_dataset(df, target_column, is_univariate):
 st.title("AUTOFORECAST")
 
 # File Upload
-data = st.file_uploader("Upload your dataset", type=["csv"])
+data = st.file_uploader("Upload your dataset", type=["csv", "txt"])
 if data is not None:
     df = process_data_upload(data)
 
@@ -102,7 +102,7 @@ if data is not None:
     st.dataframe(df)
 
     # Save data to CSV for future processing
-    save_data(df, target_column, is_univariate)
+    save_final_dataset(df, target_column, is_univariate)
 
 # Select Transformer(s)
 transformations = st.multiselect(
@@ -152,12 +152,7 @@ if st.button("Forecast"):
     save_yaml(params, PARAMS_FILE_PATH)
     with st.spinner("Forecasting..."):
         # Run the forecasting pipeline
-        zenml.init()
-        forecasting_pipeline(
-            analyze_step(),
-            preprocess_and_train_step(),
-            evaluate_step(),
-            forecast_step(),
-        ).run()
+        os.system("zenml init")
+        forecasting_pipeline(preprocess_and_train_step()).run()
         # TODO: Display the results
         st.success("Forecasting completed!")

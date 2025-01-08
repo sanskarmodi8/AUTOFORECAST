@@ -23,5 +23,6 @@ isort
 
 # Pipeline orchestration
 zenml
+zenml[server]
 
 -e .

@@ -8,7 +8,7 @@ STAGE_NAME = "PREPROCESSING AND MODEL TRAINING STAGE"
 
 
 @step
-def preprocess_and_train_step(success: bool) -> bool:
+def preprocess_and_train_step() -> bool:
     try:
         logger.info(f"{STAGE_NAME} STARTED")
         config_manager = ConfigurationManager()

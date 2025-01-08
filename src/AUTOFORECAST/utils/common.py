@@ -13,7 +13,7 @@ from AUTOFORECAST import logger
 
 
 @ensure_annotations
-def save_yaml(data: dict, filepath: str):
+def save_yaml(data: dict, filepath: Path):
     """
     Save the provided data to a YAML file at the specified filepath.
 
