@@ -2,6 +2,7 @@ import itertools
 from abc import ABC, abstractmethod
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 from sklearn.preprocessing import (
     MinMaxScaler,
@@ -40,192 +41,266 @@ from AUTOFORECAST.utils.common import save_bin, save_json
 class PreprocessingAndTrainingStrategy(ABC):
     @abstractmethod
     def run(self, y, X, config):
-        """
-        Method to run the preprocessing and training strategy.
-
-        Parameters:
-        y (pd.Series): Target variable
-        X (pd.DataFrame): Feature variables
-        config (PreprocessingAndTrainingConfig): Configuration for preprocessing and training.
-        """
         pass
 
 
 class UnivariateStrategy(PreprocessingAndTrainingStrategy):
+    def _validate_and_prepare_data(self, y):
+        """Validate and prepare the time series data."""
+        if y is None or len(y) == 0:
+            raise ValueError("Input time series is empty or None")
+
+        # Remove any infinite values
+        y = y.replace([np.inf, -np.inf], np.nan)
+
+        # Get first and last valid index
+        first_valid = y.first_valid_index()
+        last_valid = y.last_valid_index()
+
+        if first_valid is None or last_valid is None:
+            raise ValueError("Time series contains no valid data")
+
+        # Trim series to valid range
+        y = y.loc[first_valid:last_valid]
+
+        return y
+
+    def _handle_frequency(self, y):
+        """Handle time series frequency detection and resampling."""
+        if len(y) <= 1:
+            return y, "D"
+
+        freq = pd.infer_freq(y.index)
+        if freq is None:
+            for test_freq in ["D", "B", "W", "M", "MS"]:
+                resampled = y.resample(test_freq).mean()
+                if len(resampled.dropna()) > len(y) * 0.8:
+                    freq = test_freq
+                    break
+            if freq is None:
+                freq = "D"
+
+        if freq in ["MS", "M"]:
+            y.index = y.index.to_period("M").to_timestamp("M")
+            freq = "M"
+
+        return y, freq
+
     def run(self, y, X, config):
         logger.info("Running univariate strategy")
 
-        # Ensure the time series has a frequency
-        logger.info("Setting time series frequency")
-        # Infer frequency if possible, otherwise default to daily
-        if len(y) > 1:
-            freq = pd.infer_freq(y.index)
-            logger.info(f"Detected frequency: {freq}")
-        else:
-            freq = "D"
-            logger.info(
-                "Not enough data points to infer frequency, defaulting to daily"
+        try:
+            # Validate and prepare data
+            y = self._validate_and_prepare_data(y)
+
+            # Handle frequency
+            y, freq = self._handle_frequency(y)
+            logger.info(f"Using frequency: {freq}")
+
+            # Create complete index and handle missing values
+            full_idx = pd.date_range(start=y.index.min(), end=y.index.max(), freq=freq)
+            y = y.reindex(full_idx)
+
+            # Multiple imputation strategies
+            y = y.interpolate(method="time", limit_direction="both")
+            y = y.ffill().bfill()
+
+            if y.isnull().values.any():
+                raise ValueError(
+                    "Unable to handle all missing values in the time series"
+                )
+
+            # Convert index for splitting
+            y.index = pd.PeriodIndex(y.index, freq=freq)
+
+            # Split data with validation
+            if len(y) < 5:
+                raise ValueError(
+                    "Not enough data points for training (minimum 5 required)"
+                )
+
+            test_size = int(len(y) * 0.2)  # Convert to integer
+            y_train, y_test = temporal_train_test_split(y, test_size=test_size)
+
+            if len(y_train) < 3:
+                raise ValueError("Not enough training data points after splitting")
+
+            # Save test data
+            test_data_path = Path(config.test_data_dir) / Path("y.csv")
+            y_test.to_csv(test_data_path)
+
+            # Set up cross-validation
+            fh_int = np.arange(1, len(y_test) + 1)  # Integer-based forecast horizon
+            initial_window = int(len(y_train) * 0.5)  # Convert to integer
+            cv = ExpandingWindowSplitter(
+                initial_window=initial_window, step_length=1, fh=fh_int
             )
 
-        # Reindex the time series with the determined frequency
-        y = y.asfreq(freq)
+            best_model = None
+            best_params = None
+            best_score = float("inf")
 
-        logger.info("Splitting data into train and test")
-        # Split data into train and test
-        y_train, y_test = temporal_train_test_split(y, test_size=0.2)
+            for model in config.chosen_models:
+                try:
+                    logger.info(f"Training model: {model}")
+                    param_grid = {}
+                    steps = []
 
-        # Save test data for later evaluation
-        y_test.to_csv(Path(config.test_data_dir) / Path("y.csv"))
+                    seasonal_period = {"D": 7, "W": 52, "M": 12, "Y": 1}.get(freq, 1)
 
-        # Create expanding window splitter for cross-validation
-        fh = ForecastingHorizon(y_test.index, is_relative=False).to_relative(
-            y_train.index[-1]
-        )
-        cv = ExpandingWindowSplitter(
-            fh=fh, initial_window=int(len(y_train) * 0.5), step_length=1
-        )
+                    # Add transformers
+                    for transformer in config.chosen_transformers:
+                        if transformer in AVAIL_TRANSFORMERS_GRID:
+                            step = self._create_transformer_step(transformer)
+                            if step:
+                                steps.append(step)
+                                param_grid.update(AVAIL_TRANSFORMERS_GRID[transformer])
 
-        # Rest of your existing code remains the same
-        best_model = None
-        best_params = None
-        best_score = None
-
-        for model in config.chosen_models:
-            # Build the parameter grid for tuning by adding chosen transformers and models
-            logger.info(f"Building parameter grid for {model}")
-            param_grid = {}
-            for transformer in config.chosen_transformers:
-                param_grid.update(AVAIL_TRANSFORMERS_GRID[transformer])
-            param_grid.update(AVAIL_MODELS_GRID[model])
-
-            # Add the transformers and models to the pipeline
-            steps = []
-
-            for transformer in config.chosen_transformers:
-                if transformer == "Detrender":
-                    steps.append(("detrender", OptionalPassthrough(Detrender())))
-                if transformer == "LogTransformer":
-                    steps.append(
-                        ("logtransformer", OptionalPassthrough(LogTransformer()))
+                    # Add forecaster
+                    forecaster_step = self._create_forecaster_step(
+                        model, seasonal_period
                     )
-                if transformer == "ExponentTransformer":
-                    steps.append(
-                        (
-                            "exponenttransformer",
-                            OptionalPassthrough(ExponentTransformer()),
-                        )
-                    )
-                if transformer == "Imputer":
-                    steps.append(("imputer", OptionalPassthrough(Imputer())))
-                if transformer == "Deseasonalizer":
-                    steps.append(
-                        ("deseasonalizer", OptionalPassthrough(Deseasonalizer()))
-                    )
-                if transformer == "PowerTransformer":
-                    steps.append(
-                        (
-                            "powertransformer",
-                            OptionalPassthrough(
-                                TabularToSeriesAdaptor(PowerTransformer())
-                            ),
-                        )
-                    )
-                if transformer == "RobustScaler":
-                    steps.append(
-                        (
-                            "scaler",
-                            OptionalPassthrough(TabularToSeriesAdaptor(RobustScaler())),
-                        )
+                    if forecaster_step:
+                        steps.append(forecaster_step)
+                        param_grid.update(AVAIL_MODELS_GRID[model])
+
+                    # Generate permutations
+                    forecaster_name = steps[-1][0]
+                    transformers_names = [step[0] for step in steps[:-1]]
+                    permutations = list(itertools.permutations(transformers_names))
+                    permutations = [
+                        list(perm) + [forecaster_name] for perm in permutations
+                    ]
+
+                    if not permutations:
+                        permutations = [[forecaster_name]]
+
+                    param_grid = {"permutation": permutations, **param_grid}
+
+                    # Create pipeline
+                    pipe_y = TransformedTargetForecaster(steps=steps)
+                    permuted_y = Permute(estimator=pipe_y, permutation=None)
+
+                    gscv = ForecastingGridSearchCV(
+                        forecaster=permuted_y,
+                        param_grid=param_grid,
+                        cv=cv,
+                        scoring=MeanSquaredError(square_root=True),
+                        n_jobs=1,  # Ensure stable behavior
                     )
 
-            if model == "SARIMAX":
-                steps.append(("forecaster", SARIMAX()))
-            elif model == "PolynomialTrendForecaster":
-                steps.append(("forecaster", PolynomialTrendForecaster()))
-            elif model == "ExponentialSmoothing":
-                steps.append(("forecaster", ExponentialSmoothing()))
-            elif model == "ThetaForecaster":
-                steps.append(("forecaster", ThetaForecaster()))
-            elif model == "NaiveForecaster":
-                steps.append(("forecaster", NaiveForecaster()))
-            elif model == "AutoARIMA":
-                steps.append(("forecaster", AutoARIMA()))
-            elif model == "Prophet":
-                steps.append(("forecaster", Prophet()))
-            elif model == "ARIMA":
-                steps.append(("forecaster", ARIMA()))
+                    with np.errstate(divide="ignore", invalid="ignore"):
+                        gscv.fit(y=y_train)
 
-            # get permutations of steps with forecaster as the last step and update param_grid
-            forecaster_name = steps[-1][0]
-            transformers_names = [step[0] for step in steps[:-1]]
-            permutations = list(itertools.permutations(transformers_names))
-            permutations = [list(perm) + [forecaster_name] for perm in permutations]
-            # add permutations to param_grid at the start
-            param_grid = {"permutation": permutations, **param_grid}
-            logger.info(f"Steps: {steps}")
-            logger.info(f"Parameter grid: {param_grid}")
-            # perform grid search cv
-            pipe_y = TransformedTargetForecaster(steps=steps)
-            permuted_y = Permute(estimator=pipe_y, permutation=None)
+                    if gscv.best_score_ < best_score:
+                        best_model = gscv.best_forecaster_
+                        best_params = {
+                            "best_forecaster": model,
+                            "best_params": gscv.best_params_,
+                        }
+                        best_score = gscv.best_score_
 
-            logger.info(f"Performing grid search cv for model {model}")
-            gscv = ForecastingGridSearchCV(
-                forecaster=permuted_y,
-                param_grid=param_grid,
-                cv=cv,
-                verbose=1,
-                scoring=MeanSquaredError(square_root=True),
-                error_score="raise",
-                n_jobs=-1,
+                except Exception as e:
+                    logger.warning(f"Error fitting {model}: {str(e)}")
+                    continue
+
+            if best_model is None:
+                raise ValueError("No models were successfully trained")
+
+            # Save results
+            save_bin(best_model, Path(config.model))
+            save_json(Path(config.best_params), best_params)
+
+        except Exception as e:
+            logger.error(f"Error in univariate strategy: {str(e)}")
+            raise e
+
+    def _create_transformer_step(self, transformer):
+        """Create a transformer step based on transformer type."""
+        if transformer == "Detrender":
+            return ("detrender", OptionalPassthrough(Detrender()))
+        elif transformer == "LogTransformer":
+            return ("logtransformer", OptionalPassthrough(LogTransformer()))
+        elif transformer == "ExponentTransformer":
+            return ("exponenttransformer", OptionalPassthrough(ExponentTransformer()))
+        elif transformer == "Imputer":
+            return ("imputer", OptionalPassthrough(Imputer()))
+        elif transformer == "Deseasonalizer":
+            return ("deseasonalizer", OptionalPassthrough(Deseasonalizer()))
+        elif transformer == "PowerTransformer":
+            return (
+                "powertransformer",
+                OptionalPassthrough(TabularToSeriesAdaptor(PowerTransformer())),
             )
-            gscv.fit(y=y_train, fh=fh)
+        elif transformer == "RobustScaler":
+            return (
+                "scaler",
+                OptionalPassthrough(TabularToSeriesAdaptor(RobustScaler())),
+            )
+        return None
 
-            # Store the best model
-            if best_score is None or gscv.best_score_ < best_score:
-                best_model = gscv.best_estimator_
-                best_params = {
-                    "best_forecaster": model,
-                    "best_params": gscv.best_params_,
-                }
-                best_score = gscv.best_score_
-
-        # Save the best model and its parameters
-        save_bin(best_model, config.model)
-        save_json(Path(config.best_params), best_params)
+    def _create_forecaster_step(self, model, seasonal_period):
+        """Create a forecaster step based on model type."""
+        if model == "SARIMAX":
+            return (
+                "forecaster",
+                SARIMAX(enforce_invertibility=False, enforce_stationarity=False),
+            )
+        elif model == "PolynomialTrendForecaster":
+            return ("forecaster", PolynomialTrendForecaster())
+        elif model == "ExponentialSmoothing":
+            return ("forecaster", ExponentialSmoothing(sp=seasonal_period))
+        elif model == "ThetaForecaster":
+            return ("forecaster", ThetaForecaster(sp=seasonal_period))
+        elif model == "NaiveForecaster":
+            return ("forecaster", NaiveForecaster(sp=seasonal_period))
+        elif model == "AutoARIMA":
+            return (
+                "forecaster",
+                AutoARIMA(
+                    sp=seasonal_period,
+                    enforce_invertibility=False,
+                    enforce_stationarity=False,
+                ),
+            )
+        elif model == "Prophet":
+            return ("forecaster", Prophet())
+        elif model == "ARIMA":
+            return (
+                "forecaster",
+                ARIMA(enforce_invertibility=False, enforce_stationarity=False),
+            )
+        return None
 
 
 class MultivariateStrategy(PreprocessingAndTrainingStrategy):
     def run(self, y, X, config):
+        logger.info("Multivariate strategy not implemented yet")
         pass
 
 
 class PreprocessingAndTraining:
     def __init__(self, config: PreprocessingAndTrainingConfig):
-        """
-        Constructor for PreprocessingAndTraining class.
-
-        This class is used to select appropriate preprocessing and training
-        strategy based on whether the data is univariate or multivariate.
-
-        Parameters:
-        config (PreprocessingAndTrainingConfig): Configuration for preprocessing
-            and training.
-        """
         self.config = config
-        self.y = pd.read_csv(DATA_DIR / Path("y.csv"), index_col=0, parse_dates=True)
+        try:
+            self.y = pd.read_csv(
+                DATA_DIR / Path("y.csv"), index_col=0, parse_dates=True
+            )
+            if len(self.y) == 0:
+                raise ValueError("Empty target variable data")
+        except Exception as e:
+            raise ValueError(f"Error reading target variable data: {str(e)}")
+
         try:
             self.X = pd.read_csv(
                 DATA_DIR / Path("X.csv"), index_col=0, parse_dates=True
             )
         except Exception:
             self.X = None
-        if self.X is None:
-            self.strategy = UnivariateStrategy()
-        else:
-            self.strategy = MultivariateStrategy()
+
+        self.strategy = (
+            UnivariateStrategy() if self.X is None else MultivariateStrategy()
+        )
 
     def run(self):
-        """
-        Method to run the preprocessing and training strategy.
-        """
         self.strategy.run(self.y, self.X, self.config)

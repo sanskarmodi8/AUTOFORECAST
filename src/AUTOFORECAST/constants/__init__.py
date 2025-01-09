@@ -40,7 +40,7 @@ AVAIL_MODELS_GRID = {
         "estimator__forecaster__sp": [1, 4, 12, 365],
     },
     "AutoARIMA": {
-        "estimator__forecaster__sp": [12],
+        "estimator__forecaster__sp": [1, 4, 12, 365],
         "estimator__forecaster__stationary": [True, False],
     },
     "ExponentialSmoothing": {
