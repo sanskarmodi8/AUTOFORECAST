@@ -18,4 +18,4 @@ logging.basicConfig(
 )
 
 # create an object of the logger
-logger = logging.getLogger("AUTOFORECASTER")
+logger = logging.getLogger("AUTOFORECASTLogger")

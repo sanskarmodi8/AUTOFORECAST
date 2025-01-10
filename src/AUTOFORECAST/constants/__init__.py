@@ -21,22 +21,21 @@ AVAIL_MODELS = [
     "SARIMAX",
 ]
 AVAIL_METRICS = [
-    "mae",
-    "mse",
-    "rmse",
-    "mape",
-    "smape",
-    "mdape",
-    "r2",
-    "exp_var",
-    "max_error",
+    "MeanAbsoluteError",
+    "MeanSquaredError",
+    "RootMeanSquaredError",
+    "MeanAbsolutePercentageError",
+    "MeanAbsoluteScaledError",
+    "MeanSquaredScaledError",
+    "MedianSquaredError",
+    "MedianAbsoluteError",
 ]
 CONFIG_FILE_PATH = Path("config/config.yaml")
 PARAMS_FILE_PATH = Path("params.yaml")
 
 AVAIL_MODELS_GRID = {
     "NaiveForecaster": {
-        "estimator__forecaster__strategy": ["last", "mean", "drift"],
+        "estimator__forecaster__strategy": ["last", "mean"],
         "estimator__forecaster__sp": [1, 4, 12, 365],
     },
     "AutoARIMA": {

@@ -5,6 +5,7 @@ numpy
 
 # visualization
 matplotlib
+seaborn
 plotly
 
 # utilities

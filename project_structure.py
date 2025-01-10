@@ -1,9 +1,5 @@
-import logging
 import os
 from pathlib import Path
-
-# set up logging
-logging.basicConfig(level=logging.INFO, format="[%(asctime)s] : %(message)s")
 
 # create project structure
 project_name = "AUTOFORECAST"
@@ -43,12 +39,12 @@ for filepath in list_of_files:
 
     if filedir != "" and not os.path.exists(filedir):
         os.makedirs(filedir, exist_ok=True)
-        logging.info(f"Created directory : {filedir} for the file {filename}")
+        print(f"Created directory : {filedir} for the file {filename}")
     else:
-        logging.info(f"Directoy ({filedir}) already exists.")
+        print.info(f"Directoy ({filedir}) already exists.")
     if not os.path.exists(filepath):
         with open(filepath, "w") as f:
-            logging.info(f"Created empty file : {filepath}")
+            print.info(f"Created empty file : {filepath}")
 
     else:
-        logging.info(f"File ({filepath}) already exists.")
+        print.info(f"File ({filepath}) already exists.")

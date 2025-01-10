@@ -2,6 +2,7 @@ import itertools
 from abc import ABC, abstractmethod
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import (
@@ -15,6 +16,7 @@ from sktime.forecasting.base import ForecastingHorizon
 from sktime.forecasting.compose import Permute, TransformedTargetForecaster
 from sktime.forecasting.exp_smoothing import ExponentialSmoothing
 from sktime.forecasting.fbprophet import Prophet
+from sktime.forecasting.model_evaluation import evaluate
 from sktime.forecasting.model_selection import (
     ExpandingWindowSplitter,
     ForecastingGridSearchCV,
@@ -24,13 +26,17 @@ from sktime.forecasting.naive import NaiveForecaster
 from sktime.forecasting.sarimax import SARIMAX
 from sktime.forecasting.theta import ThetaForecaster
 from sktime.forecasting.trend import PolynomialTrendForecaster
-from sktime.performance_metrics.forecasting import MeanSquaredError
+from sktime.performance_metrics.forecasting import (
+    MeanAbsolutePercentageError,
+    MeanSquaredError,
+)
 from sktime.transformations.compose import OptionalPassthrough
 from sktime.transformations.series.adapt import TabularToSeriesAdaptor
 from sktime.transformations.series.boxcox import LogTransformer
 from sktime.transformations.series.detrend import Deseasonalizer, Detrender
 from sktime.transformations.series.exponent import ExponentTransformer
 from sktime.transformations.series.impute import Imputer
+from sktime.utils.plotting import plot_series
 
 from AUTOFORECAST import logger
 from AUTOFORECAST.constants import AVAIL_MODELS_GRID, AVAIL_TRANSFORMERS_GRID, DATA_DIR
@@ -193,7 +199,7 @@ class UnivariateStrategy(PreprocessingAndTrainingStrategy):
                         gscv.fit(y=y_train)
 
                     if gscv.best_score_ < best_score:
-                        best_model = gscv.best_forecaster_
+                        best_model = gscv
                         best_params = {
                             "best_forecaster": model,
                             "best_params": gscv.best_params_,
@@ -210,6 +216,13 @@ class UnivariateStrategy(PreprocessingAndTrainingStrategy):
             # Save results
             save_bin(best_model, Path(config.model))
             save_json(Path(config.best_params), best_params)
+            # evaluate the best model
+            mape = MeanAbsolutePercentageError()
+            y_pred = best_model.predict(fh=fh_int)
+            score = mape(y_test, y_pred)
+            plot_series(y_train, y_test, y_pred, labels=["y_train", "y_test", "y_pred"])
+            plt.savefig(Path("eval.png"))
+            logger.info(f"score_mape: {score}")
 
         except Exception as e:
             logger.error(f"Error in univariate strategy: {str(e)}")

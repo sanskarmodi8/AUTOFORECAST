@@ -21,6 +21,9 @@ from src.AUTOFORECAST.pipeline.stage_02_model_evaluation import evaluate_step
 from src.AUTOFORECAST.pipeline.stage_03_forecasting import forecast_step
 from src.AUTOFORECAST.utils.common import save_yaml
 
+# set environment variables
+os.environ["AUTO_OPEN_DASHBOARD"] = "False"
+
 
 def process_data_upload(data):
     """Load the uploaded dataset correctly by determining the delimiter."""
@@ -54,6 +57,7 @@ def set_datetime_index(df):
 def save_final_dataset(df, target_column, is_univariate):
     """Save the CSV data in appropiate manner."""
     y = df[target_column]
+    os.makedirs(DATA_DIR, exist_ok=True)
     y.to_csv(f"{DATA_DIR}/y.csv")
     if not is_univariate:
         X = df.drop(target_column, axis=1)
@@ -152,7 +156,11 @@ if st.button("Forecast"):
     save_yaml(params, PARAMS_FILE_PATH)
     with st.spinner("Forecasting..."):
         # Run the forecasting pipeline
+        os.system("zenml up")
         os.system("zenml init")
-        forecasting_pipeline(preprocess_and_train_step()).run()
+        forecasting_pipeline(
+            preprocess_and_train_step(),
+            # evaluate_step()
+        ).run()
         # TODO: Display the results
         st.success("Forecasting completed!")
