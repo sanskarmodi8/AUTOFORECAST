@@ -19,7 +19,7 @@ from src.AUTOFORECAST.pipeline.stage_01_preprocessing_and_training import (
 )
 from src.AUTOFORECAST.pipeline.stage_02_model_evaluation import evaluate_step
 from src.AUTOFORECAST.pipeline.stage_03_forecasting import forecast_step
-from src.AUTOFORECAST.utils.common import save_yaml
+from src.AUTOFORECAST.utils.common import save_yaml, create_directories
 
 # set environment variables
 os.environ["AUTO_OPEN_DASHBOARD"] = "False"
@@ -54,12 +54,12 @@ def set_datetime_index(df):
     return df
 
 
-def save_final_dataset(df, target_column, is_univariate):
+def save_final_dataset(df, target_column, uni_or_mul):
     """Save the CSV data in appropiate manner."""
     y = df[target_column]
-    os.makedirs(DATA_DIR, exist_ok=True)
+    create_directories([DATA_DIR])
     y.to_csv(f"{DATA_DIR}/y.csv")
-    if not is_univariate:
+    if uni_or_mul == "Multivariate":
         X = df.drop(target_column, axis=1)
         X.to_csv(f"{DATA_DIR}/X.csv")
 
@@ -84,12 +84,12 @@ if data is not None:
     )
 
     # Select Univariate or Multivariate
-    is_univariate = st.radio(
+    uni_or_mul = st.radio(
         "Univariate or Multivariate?",
         ["Univariate", "Multivariate"],
         help="Univariate forecasting involves forecasting the target variable by itself, while multivariate forecasting involves forecasting the target variable using other indipendent/exogenous variables.",
     )
-    if is_univariate == "Multivariate":
+    if uni_or_mul == "Multivariate":
         exogenous_options = [col for col in df.columns if col != target_column]
         exogenous_columns = st.multiselect(
             "Select exogenous columns:",
@@ -106,14 +106,14 @@ if data is not None:
     st.dataframe(df)
 
     # Save data to CSV for future processing
-    save_final_dataset(df, target_column, is_univariate)
+    save_final_dataset(df, target_column, uni_or_mul)
 
 # Select Transformer(s)
 transformations = st.multiselect(
     "Select Transformer(s)",
     AVAIL_TRANSFORMERS,
     placeholder="Select Transformer(s)",
-    help="Transformers are used to preprocess the data before forecasting. You can select multiple transformers, we will take care of the best possible ordering.",
+    help="Transformers are used to preprocess the data before forecasting. You can select multiple transformers, we will take care of the best possible ordering. Just remember, the more transformers you select, the more time it will take to forecast, or the app may crash if the memory exceeds.",
 )
 
 # Select Model(s)
@@ -121,7 +121,7 @@ models = st.multiselect(
     "Select Model(s)",
     AVAIL_MODELS,
     placeholder="Select Model(s)",
-    help="Models are used to forecast the target variable. You can select multiple models, we will choose the best performing one.",
+    help="Models are used to forecast the target variable. You can select multiple models, we will choose the best performing one. Just remember, the more models you select, the more time it will take to forecast, or the app may crash if the memory exceeds.",
 )
 
 # Select Metric(s)
@@ -160,7 +160,7 @@ if st.button("Forecast"):
         os.system("zenml init")
         forecasting_pipeline(
             preprocess_and_train_step(),
-            # evaluate_step()
+            evaluate_step()
         ).run()
         # TODO: Display the results
         st.success("Forecasting completed!")
