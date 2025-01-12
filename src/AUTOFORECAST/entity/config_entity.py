@@ -3,6 +3,8 @@ from pathlib import Path
 
 from box import ConfigBox
 
+# entity classes for final configuration of each component of the pipeline
+
 
 @dataclass(frozen=True)
 class PreprocessingAndTrainingConfig:
@@ -20,7 +22,7 @@ class ModelEvaluationConfig:
     model: Path
     test_data_dir: Path
     scores: Path
-    forecast_vs_actual_plot: Path
+    forecast_vs_actual: Path
     chosen_metrics: list
 
 

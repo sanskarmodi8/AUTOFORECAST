@@ -9,6 +9,12 @@ STAGE_NAME = "PREPROCESSING AND MODEL TRAINING STAGE"
 
 @step
 def preprocess_and_train_step():
+    """
+    A ZenML step for preprocessing and training the model.
+
+    This step will call the `run` method of the `PreprocessingAndTraining` class,
+    which will handle any necessary data preprocessing and model training.
+    """
     try:
         logger.info(f"{STAGE_NAME} STARTED")
         config_manager = ConfigurationManager()

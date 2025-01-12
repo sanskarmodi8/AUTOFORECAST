@@ -9,6 +9,11 @@ STAGE_NAME = "MODEL EVALUATION STAGE"
 
 @step
 def evaluate_step():
+    """
+    A ZenML step that evaluates the model performance using the chosen metrics.
+
+    This step will load the saved model, load the test data, and evaluate the model using the chosen metrics.
+    """
     try:
         logger.info(f"Starting {STAGE_NAME}")
         config = ConfigurationManager().get_model_evaluation_config()

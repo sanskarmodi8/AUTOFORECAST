@@ -5,7 +5,6 @@ AVAIL_TRANSFORMERS = [
     "Detrender",
     "LogTransformer",
     "ExponentTransformer",
-    "Imputer",
     "Deseasonalizer",
     "PowerTransformer",
     "RobustScaler",
@@ -82,15 +81,6 @@ AVAIL_TRANSFORMERS_GRID = {
     },
     "ExponentTransformer": {
         "estimator__exponenttransformer__passthrough": [True, False],
-    },
-    "Imputer": {
-        "estimator__imputer__method": [
-            "drift",
-            "median",
-            "nearest",
-            "mean",
-        ],
-        "estimator__imputer__passthrough": [True, False],
     },
     "Deseasonalizer": {
         "estimator__deseasonalizer__passthrough": [True, False],

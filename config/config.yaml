@@ -1,3 +1,5 @@
+# base configuration for each component of the pipeline
+
 preprocessing_and_training:
   root_dir: artifacts/preprocessing_and_training
   model: artifacts/preprocessing_and_training/model.joblib

@@ -19,7 +19,7 @@ from src.AUTOFORECAST.pipeline.stage_01_preprocessing_and_training import (
 )
 from src.AUTOFORECAST.pipeline.stage_02_model_evaluation import evaluate_step
 from src.AUTOFORECAST.pipeline.stage_03_forecasting import forecast_step
-from src.AUTOFORECAST.utils.common import save_yaml, create_directories
+from src.AUTOFORECAST.utils.common import create_directories, save_yaml
 
 # set environment variables
 os.environ["AUTO_OPEN_DASHBOARD"] = "False"
@@ -158,9 +158,6 @@ if st.button("Forecast"):
         # Run the forecasting pipeline
         os.system("zenml up")
         os.system("zenml init")
-        forecasting_pipeline(
-            preprocess_and_train_step(),
-            evaluate_step()
-        ).run()
+        forecasting_pipeline(preprocess_and_train_step(), evaluate_step()).run()
         # TODO: Display the results
         st.success("Forecasting completed!")

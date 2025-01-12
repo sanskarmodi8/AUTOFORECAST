@@ -11,10 +11,17 @@ from AUTOFORECAST.utils.common import create_directories, read_yaml
 
 class ConfigurationManager:
     def __init__(self):
+        # read the configurations file and parameters file
         self.params = read_yaml(PARAMS_FILE_PATH)
         self.config = read_yaml(CONFIG_FILE_PATH)
 
     def get_preprocessing_and_training_config(self) -> PreprocessingAndTrainingConfig:
+        """
+        Gets the configuration for preprocessing and training the model.
+
+        Returns:
+            PreprocessingAndTrainingConfig: The configuration for preprocessing and training the model.
+        """
         config = self.config.preprocessing_and_training
         create_directories([Path(config.root_dir), Path(config.test_data_dir)])
         return PreprocessingAndTrainingConfig(
@@ -27,6 +34,12 @@ class ConfigurationManager:
         )
 
     def get_model_evaluation_config(self) -> ModelEvaluationConfig:
+        """
+        Gets the configuration for model evaluation.
+
+        Returns:
+            ModelEvaluationConfig: The configuration for model evaluation.
+        """
         config = self.config.model_evaluation
         create_directories([Path(config.root_dir)])
         return ModelEvaluationConfig(
@@ -39,6 +52,12 @@ class ConfigurationManager:
         )
 
     def forecasting_config(self) -> ForecastingConfig:
+        """
+        Gets the configuration for forecasting.
+
+        Returns:
+            ForecastingConfig: The configuration for forecasting.
+        """
         config = self.config.forecasting
         create_directories([Path(config.root_dir)])
         return DataIngestionConfig(
