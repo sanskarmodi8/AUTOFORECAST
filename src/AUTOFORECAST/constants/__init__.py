@@ -20,14 +20,13 @@ AVAIL_MODELS = [
     "SARIMAX",
 ]
 AVAIL_METRICS = [
-    "MeanAbsoluteError",
-    "MeanSquaredError",
-    "RootMeanSquaredError",
-    "MeanAbsolutePercentageError",
-    "MeanAbsoluteScaledError",
-    "MeanSquaredScaledError",
-    "MedianSquaredError",
-    "MedianAbsoluteError",
+    "Mean Absolute Error",
+    "Root Mean Squared Error",
+    "Symmetric Mean Absolute Percentage Error",
+    "Mean Absolute Scaled Error",
+    "Mean Squared Scaled Error",
+    "Median Squared Error",
+    "Median Absolute Error",
 ]
 CONFIG_FILE_PATH = Path("config/config.yaml")
 PARAMS_FILE_PATH = Path("params.yaml")
