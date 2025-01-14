@@ -32,3 +32,4 @@ class ForecastingConfig:
     model: Path
     forecast_plot: Path
     fh: int
+    forecast_data: Path

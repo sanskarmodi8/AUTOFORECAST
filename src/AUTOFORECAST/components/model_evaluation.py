@@ -24,12 +24,12 @@ from AUTOFORECAST.utils.common import load_bin, save_json
 
 class ModelEvaluationStrategy(ABC):
     @abstractmethod
-    def evaluate(self, config: ModelEvaluationConfig):
+    def evaluate(self, y_test, X_test, config: ModelEvaluationConfig):
         pass
 
 
 class UnivariateEvaluationStrategy(ModelEvaluationStrategy):
-    def evaluate(self, config: ModelEvaluationConfig):
+    def evaluate(self, y_test, X_test, config: ModelEvaluationConfig):
         """
         Evaluate the model using the specified metrics and save the evaluation results.
 
@@ -45,8 +45,7 @@ class UnivariateEvaluationStrategy(ModelEvaluationStrategy):
 
         """
 
-        # Load test data and model
-        y_test = pd.read_csv(Path(config.test_data_dir) / Path("y.csv"), index_col=0)
+        # Load the model
         model = load_bin(config.model)
 
         # get pred
@@ -116,7 +115,7 @@ class UnivariateEvaluationStrategy(ModelEvaluationStrategy):
 
 
 class MultivariateEvaluationStrategy(ModelEvaluationStrategy):
-    def evaluate(self, config: ModelEvaluationConfig):
+    def evaluate(self, y_test, X_test, config: ModelEvaluationConfig):
         """
         Evaluate the model using the specified metrics and save the evaluation results.
 
@@ -132,9 +131,7 @@ class MultivariateEvaluationStrategy(ModelEvaluationStrategy):
 
         """
 
-        # Load test data and model
-        X_test = pd.read_csv(Path(config.test_data_dir) / Path("X.csv"), index_col=0)
-        y_test = pd.read_csv(Path(config.test_data_dir) / Path("y.csv"), index_col=0)
+        # Load the model
         model = load_bin(config.model)
 
         # get pred
@@ -206,26 +203,50 @@ class MultivariateEvaluationStrategy(ModelEvaluationStrategy):
 class ModelEvaluation:
     def __init__(self, config: ModelEvaluationConfig):
         """
-        Initialize ModelEvaluation with appropriate strategy.
+        Initialize the ModelEvaluation class.
 
         Args:
-            config (ModelEvaluationConfig): ModelEvaluationConfig object containing
+            config (ModelEvaluationConfig): Configuration object containing
                 necessary paths and parameters for model evaluation.
 
         Attributes:
-            strategy (ModelEvaluationStrategy): Strategy for model evaluation, selected
-                based on whether feature data is available (univariate or multivariate).
+            y_test (pd.DataFrame): Target variable data loaded from 'y.csv'.
+            x_test (pd.DataFrame or None): Feature data loaded from 'X.csv'. If the file
+                doesn't exist, x_test is set to None.
+            strategy (ModelEvaluationStrategy): Strategy for model evaluation, selected based
+                on whether feature data is available (univariate or multivariate).
+
+        Raises:
+            ValueError: If the target variable data is empty or cannot be read.
         """
         self.config = config
 
-        # Check if X_test exists to determine if multivariate
-        X_test_path = Path(config.test_data_dir) / "X.csv"
+        try:
+            # Load target variable data
+            self.y_test = pd.read_csv(
+                self.config.test_data_dir / Path("y.csv"), index_col=0, parse_dates=True
+            )
+            if len(self.y_test) == 0:
+                raise ValueError("Empty target variable data")
+        except Exception as e:
+            raise ValueError(f"Error reading target variable data: {str(e)}")
+
+        try:
+            # load feature data if available
+            self.x_test = pd.read_csv(
+                Path(config.test_data_dir) / Path("X.csv"),
+                index_col=0,
+                parse_dates=True,
+            )
+        except Exception:
+            # if feature data is not available, set to None
+            self.x_test = None
+
+        # Select strategy based on feature data availability
         self.strategy = (
-            UnivariateEvaluationStrategy()
-            if not X_test_path.exists()
-            else MultivariateEvaluationStrategy()
+            UnivariateStrategy() if self.x_test is None else MultivariateStrategy()
         )
 
     def evaluate(self):
         """Run model evaluation using appropriate strategy"""
-        return self.strategy.evaluate(self.config)
+        self.strategy.evaluate(self.y_test, self.x_test, self.config)

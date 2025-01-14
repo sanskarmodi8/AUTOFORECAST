@@ -158,6 +158,8 @@ if st.button("Forecast"):
         # Run the forecasting pipeline
         os.system("zenml up")
         os.system("zenml init")
-        forecasting_pipeline(preprocess_and_train_step(), evaluate_step()).run()
+        forecasting_pipeline(
+            preprocess_and_train_step(), evaluate_step(), forecast_step()
+        ).run()
         # TODO: Display the results
         st.success("Forecasting completed!")

@@ -17,3 +17,4 @@ forecasting:
   root_dir: artifacts/forecasting
   model: artifacts/preprocessing_and_training/model.joblib
   forecast_plot: artifacts/forecasting/forecast.png
+  forecast_data: artifacts/forecasting/forecast_data.csv

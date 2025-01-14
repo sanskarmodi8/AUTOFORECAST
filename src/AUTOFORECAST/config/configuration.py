@@ -51,7 +51,7 @@ class ConfigurationManager:
             chosen_metrics=self.params.chosen_metrics,
         )
 
-    def forecasting_config(self) -> ForecastingConfig:
+    def get_forecasting_config(self) -> ForecastingConfig:
         """
         Gets the configuration for forecasting.
 
@@ -65,4 +65,5 @@ class ConfigurationManager:
             model=config.model,
             forecast_plot=config.forecast_plot,
             fh=config.fh,
+            forecast_data=config.forecast_data,
         )
