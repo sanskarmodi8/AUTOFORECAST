@@ -165,7 +165,9 @@ class UnivariateStrategy(PreprocessingAndTrainingStrategy):
             if len(y_train) < 3:
                 raise ValueError("Not enough training data points after splitting")
 
-            # Save test data
+            # Save test data and train data
+            train_data_path = Path(config.train_data_dir) / Path("y.csv")
+            y_train.to_csv(train_data_path)
             test_data_path = Path(config.test_data_dir) / Path("y.csv")
             y_test.to_csv(test_data_path)
 
@@ -441,10 +443,13 @@ class MultivariateStrategy(PreprocessingAndTrainingStrategy):
             if len(y_train) < 3:
                 raise ValueError("Not enough training data points after splitting")
 
-            # Save test data
+            # Save test data and train data
             test_data_path = Path(config.test_data_dir)
-            y_test.to_csv(test_data_path / "y.csv")
-            X_test.to_csv(test_data_path / "X.csv")
+            train_data_path = Path(config.train_data_dir)
+            y_train.to_csv(train_data_path / Path("y.csv"))
+            X_train.to_csv(train_data_path / Path("X.csv"))
+            y_test.to_csv(test_data_path / Path("y.csv"))
+            X_test.to_csv(test_data_path / Path("X.csv"))
 
             # Set up cross-validation
             fh = np.arange(1, len(y_test) + 1)

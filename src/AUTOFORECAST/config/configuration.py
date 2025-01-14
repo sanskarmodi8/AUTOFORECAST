@@ -23,7 +23,13 @@ class ConfigurationManager:
             PreprocessingAndTrainingConfig: The configuration for preprocessing and training the model.
         """
         config = self.config.preprocessing_and_training
-        create_directories([Path(config.root_dir), Path(config.test_data_dir)])
+        create_directories(
+            [
+                Path(config.root_dir),
+                Path(config.test_data_dir),
+                Path(config.train_data_dir),
+            ]
+        )
         return PreprocessingAndTrainingConfig(
             root_dir=config.root_dir,
             model=config.model,

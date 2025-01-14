@@ -13,6 +13,12 @@ class Forecasting:
     def __init__(self, config: ForecastingConfig):
         self.config = config
         self.model = load_bin(config.model)
+        self.y_test = pd.read_csv(
+            Path(config.test_data_dir) / Path("y.csv"), parse_dates=True, index_col=0
+        )
+        self.y_train = pd.read_csv(
+            Path(config.train_data_dir) / Path("y.csv"), parse_dates=True, index_col=0
+        )
 
     def forecast(self):
 
@@ -21,9 +27,14 @@ class Forecasting:
         y_pred = self.model.predict(fh)
 
         # save the forecast plot
-        plot_series(y_pred, labels=["y_pred"])
+        plot_series(
+            self.y_train,
+            self.y_test,
+            y_pred,
+            labels=["y_train", "y_test", "forecast_with_given_fh"],
+        )
         plt.savefig(self.config.forecast_plot)
 
         # save forecast as csv
-        forecast_data = pd.DataFrame({"fh": fh, "y_pred": y_pred})
+        forecast_data = pd.DataFrame({"fh": fh, "forecast_with_given_fh": y_pred})
         forecast_data.to_csv(Path(self.config.forecast_data), index=False)
