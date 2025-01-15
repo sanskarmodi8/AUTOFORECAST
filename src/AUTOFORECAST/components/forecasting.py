@@ -23,7 +23,7 @@ class Forecasting:
     def forecast(self):
 
         # get pred
-        fh = np.arange(1, self.config.fh + 1)
+        fh = np.arange(len(self.y_test) + 1, self.config.fh + 1)
         y_pred = self.model.predict(fh)
         y_pred.index = y_pred.index.to_timestamp()
 

@@ -176,7 +176,7 @@ if st.button("Forecast"):
         os.system("zenml up")
         os.system("zenml init")
         forecasting_pipeline(
-            # preprocess_and_train_step(),
+            preprocess_and_train_step(),
             evaluate_step(), 
             forecast_step()
         ).run()
