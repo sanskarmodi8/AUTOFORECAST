@@ -7,7 +7,7 @@ AVAIL_TRANSFORMERS = [
     "ExponentTransformer",
     "Deseasonalizer",
     "PowerTransformer",
-    "RobustScaler",
+    "MinMaxScaler",
 ]
 AVAIL_MODELS = [
     "NaiveForecaster",
@@ -34,25 +34,25 @@ PARAMS_FILE_PATH = Path("params.yaml")
 AVAIL_MODELS_GRID = {
     "NaiveForecaster": {
         "estimator__forecaster__strategy": ["last", "mean"],
-        "estimator__forecaster__sp": [1, 4, 12, 365],
+        "estimator__forecaster__sp": [4, 7, 52, 12, 365],
     },
     "AutoARIMA": {
-        "estimator__forecaster__sp": [1, 4, 12, 365],
+        "estimator__forecaster__sp": [4, 7, 52, 12, 365],
         "estimator__forecaster__stationary": [True, False],
     },
     "ExponentialSmoothing": {
         "estimator__forecaster__trend": ["add", "mul"],
         "estimator__forecaster__seasonal": ["add", "mul"],
         "estimator__forecaster__damped_trend": [True, False],
-        "estimator__forecaster__sp": [1, 4, 12, 365],
-        "estimator__forecaster__use_boxcox": [True, False, "log", float],
-        "estimator__forecaster__remove_bias": [True, False],
+        "estimator__forecaster__sp": [4, 7, 52, 12, 365],
+        "estimator__forecaster__use_boxcox": [False],
+        "estimator__forecaster__remove_bias": [False],
     },
     "Prophet": {
         "estimator__forecaster__seasonality_mode": ["additive", "multiplicative"],
     },
     "ThetaForecaster": {
-        "estimator__forecaster__sp": [1, 4, 12, 365],
+        "estimator__forecaster__sp": [4, 7, 52, 12, 365],
         "estimator__forecaster__deseasonalize": [True, False],
     },
     "PolynomialTrendForecaster": {
@@ -83,16 +83,14 @@ AVAIL_TRANSFORMERS_GRID = {
     },
     "Deseasonalizer": {
         "estimator__deseasonalizer__passthrough": [True, False],
-        "estimator__deseasonalizer__sp": [1, 4, 12, 365],
+        "estimator__deseasonalizer__sp": [4, 7, 52, 12, 365],
     },
     "PowerTransformer": {
-        "estimator__powertransformer__method": ["yeo-johnson", "box-cox"],
+        "estimator__powertransformer__method": ["yeo-johnson"],
         "estimator__powertransformer__standardize": [True, False],
         "estimator__powertransformer__passthrough": [True, False],
     },
-    "RobustScaler": {
+    "MinMaxScaler": {
         "estimator__scaler__passthrough": [True, False],
-        "estimator__scaler__with_scaling": [True, False],
-        "estimator__scaler__with_centering": [True, False],
     },
 }

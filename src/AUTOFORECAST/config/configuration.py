@@ -37,6 +37,7 @@ class ConfigurationManager:
             chosen_transformers=self.params.chosen_transformers,
             chosen_models=self.params.chosen_models,
             best_params=config.best_params,
+            train_data_dir=config.train_data_dir,
         )
 
     def get_model_evaluation_config(self) -> ModelEvaluationConfig:
@@ -47,7 +48,7 @@ class ConfigurationManager:
             ModelEvaluationConfig: The configuration for model evaluation.
         """
         config = self.config.model_evaluation
-        create_directories([Path(config.root_dir)])
+        create_directories([Path(config.root_dir), Path(config.forecast_vs_actual_plot)])
         return ModelEvaluationConfig(
             root_dir=config.root_dir,
             model=config.model,
@@ -55,6 +56,7 @@ class ConfigurationManager:
             scores=config.scores,
             forecast_vs_actual_plot=config.forecast_vs_actual_plot,
             chosen_metrics=self.params.chosen_metrics,
+            train_data_dir=config.train_data_dir,
         )
 
     def get_forecasting_config(self) -> ForecastingConfig:
@@ -66,10 +68,12 @@ class ConfigurationManager:
         """
         config = self.config.forecasting
         create_directories([Path(config.root_dir)])
-        return DataIngestionConfig(
+        return ForecastingConfig(
             root_dir=config.root_dir,
             model=config.model,
             forecast_plot=config.forecast_plot,
-            fh=config.fh,
+            fh=self.params.fh,
             forecast_data=config.forecast_data,
+            train_data_dir=config.train_data_dir,
+            test_data_dir=config.test_data_dir,
         )

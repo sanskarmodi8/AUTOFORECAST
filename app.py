@@ -17,8 +17,12 @@ from src.AUTOFORECAST.pipeline.pipeline import forecasting_pipeline
 from src.AUTOFORECAST.pipeline.stage_01_preprocessing_and_training import (
     preprocess_and_train_step,
 )
-from src.AUTOFORECAST.pipeline.stage_02_model_evaluation import evaluate_step
-from src.AUTOFORECAST.pipeline.stage_03_forecasting import forecast_step
+from src.AUTOFORECAST.pipeline.stage_02_model_evaluation import (
+    evaluate_step,
+)
+from src.AUTOFORECAST.pipeline.stage_03_forecasting import (
+    forecast_step,
+)
 from src.AUTOFORECAST.utils.common import create_directories, save_yaml
 
 # set environment variables
@@ -29,8 +33,9 @@ def process_data_upload(data):
     """Load the uploaded dataset correctly by determining the delimiter."""
     content = data.getvalue().decode("utf-8")
     delimiter = csv.Sniffer().sniff(content).delimiter
-    df = pd.read_csv(data, sep=delimiter, index_col=0)
+    df = pd.read_csv(data, sep=delimiter)
     df.columns = df.columns.str.lower()
+    df.columns = df.columns.str.replace(" ", "")
     return df
 
 
@@ -38,19 +43,32 @@ def set_datetime_index(df):
     """Set the datetime index based on available columns."""
     if "datetime" in df.columns:
         df["datetime"] = pd.to_datetime(df["datetime"])
+        df.sort_values("datetime", inplace=True)
         df.set_index("datetime", inplace=True)
     elif "date" in df.columns and "time" in df.columns:
         df["time"] = df["time"].str.replace(".", ":")
         df["datetime"] = pd.to_datetime(df["date"] + " " + df["time"], format="mixed")
         df = df.drop(["date", "time"], axis=1)
+        df.sort_values("datetime", inplace=True)
         df.set_index("datetime", inplace=True)
     elif "date" in df.columns:
-        df["date"] = pd.to_datetime(df["date"])
-        df.set_index("date", inplace=True)
+        df["datetime"] = pd.to_datetime(df["date"])
+        df = df.drop("date", axis=1)
+        df.sort_values("datetime", inplace=True)
+        df.set_index("datetime", inplace=True)
     elif "time" in df.columns:
         df["time"] = df["time"].str.replace(".", ":")
-        df["time"] = pd.to_datetime(df["time"])
-        df.set_index("time", inplace=True)
+        df["datetime"] = pd.to_datetime(df["time"])
+        df = df.drop("time", axis=1)
+        df.sort_values("datetime", inplace=True)
+        df.set_index("datetime", inplace=True)
+    else:
+        datetime = df.columns[0]
+        df["datetime"] = pd.to_datetime(df[datetime])
+        if datetime != "datetime":
+            df = df.drop(datetime, axis=1)
+        df.sort_values(datetime, inplace=True)
+        df.set_index(datetime, inplace=True)
     return df
 
 
@@ -71,7 +89,6 @@ st.title("AUTOFORECAST")
 data = st.file_uploader("Upload your dataset", type=["csv", "txt"])
 if data is not None:
     df = process_data_upload(data)
-
     # set the datetime index
     df = set_datetime_index(df)
 
@@ -143,7 +160,7 @@ fh = st.number_input(
 # Forecast Button
 if st.button("Forecast"):
     # check if the user provided data is valid
-    if len(transformations) == 0 or len(models) == 0 or len(metrics) == 0:
+    if len(models) == 0 or len(metrics) == 0:
         st.error("Please select at least one transformer, model, and metric.")
         st.stop()
     # save the user provided data in yaml file
@@ -159,7 +176,9 @@ if st.button("Forecast"):
         os.system("zenml up")
         os.system("zenml init")
         forecasting_pipeline(
-            preprocess_and_train_step(), evaluate_step(), forecast_step()
+            # preprocess_and_train_step(),
+            evaluate_step(), 
+            forecast_step()
         ).run()
         # TODO: Display the results
         st.success("Forecasting completed!")

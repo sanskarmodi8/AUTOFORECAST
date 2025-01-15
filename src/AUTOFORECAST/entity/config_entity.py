@@ -14,6 +14,7 @@ class PreprocessingAndTrainingConfig:
     chosen_transformers: list
     chosen_models: list
     best_params: Path
+    train_data_dir: Path
 
 
 @dataclass(frozen=True)
@@ -22,8 +23,9 @@ class ModelEvaluationConfig:
     model: Path
     test_data_dir: Path
     scores: Path
-    forecast_vs_actual: Path
+    forecast_vs_actual_plot: Path
     chosen_metrics: list
+    train_data_dir: Path
 
 
 @dataclass(frozen=True)
@@ -33,3 +35,5 @@ class ForecastingConfig:
     forecast_plot: Path
     fh: int
     forecast_data: Path
+    train_data_dir: Path
+    test_data_dir: Path

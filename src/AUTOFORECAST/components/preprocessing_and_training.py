@@ -4,7 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import PowerTransformer, RobustScaler
+from sklearn.preprocessing import PowerTransformer, MinMaxScaler
 from sktime.forecasting.arima import ARIMA, AutoARIMA
 from sktime.forecasting.compose import Permute, TransformedTargetForecaster
 from sktime.forecasting.exp_smoothing import ExponentialSmoothing
@@ -16,6 +16,7 @@ from sktime.forecasting.model_selection import (
 )
 from sktime.forecasting.naive import NaiveForecaster
 from sktime.forecasting.sarimax import SARIMAX
+from sktime.performance_metrics.forecasting import MeanAbsolutePercentageError
 from sktime.forecasting.theta import ThetaForecaster
 from sktime.forecasting.trend import PolynomialTrendForecaster
 from sktime.transformations.compose import OptionalPassthrough
@@ -164,7 +165,7 @@ class UnivariateStrategy(PreprocessingAndTrainingStrategy):
 
             if len(y_train) < 3:
                 raise ValueError("Not enough training data points after splitting")
-
+            
             # Save test data and train data
             train_data_path = Path(config.train_data_dir) / Path("y.csv")
             y_train.to_csv(train_data_path)
@@ -187,7 +188,6 @@ class UnivariateStrategy(PreprocessingAndTrainingStrategy):
                     logger.info(f"Training model: {model}")
                     param_grid = {}
                     steps = []
-                    seasonal_period = {"D": 7, "W": 52, "M": 12, "Y": 1}.get(freq, 1)
 
                     # Add transformers to steps
                     for transformer in config.chosen_transformers:
@@ -199,7 +199,7 @@ class UnivariateStrategy(PreprocessingAndTrainingStrategy):
 
                     # Add forecaster to steps
                     forecaster_step = self._create_forecaster_step(
-                        model, seasonal_period
+                        model
                     )
                     if forecaster_step:
                         steps.append(forecaster_step)
@@ -207,11 +207,11 @@ class UnivariateStrategy(PreprocessingAndTrainingStrategy):
                         param_grid.update(AVAIL_MODELS_GRID[model])
 
                     # Generate permutations of steps with forecaster as last step each time
-                    forecaster_name = steps[-1][0]
+                    
                     transformers_names = [step[0] for step in steps[:-1]]
                     permutations = list(itertools.permutations(transformers_names))
                     permutations = [
-                        list(perm) + [forecaster_name] for perm in permutations
+                        list(perm) + ["forecaster"] for perm in permutations
                     ]
                     # Add permutations to parameter grid
                     param_grid = {"permutation": permutations, **param_grid}
@@ -231,8 +231,10 @@ class UnivariateStrategy(PreprocessingAndTrainingStrategy):
                     gscv.fit(y=y_train)
 
                     # Update best model if current model has better score
+                    logger.info(f"Best score: {best_score}")
+                    logger.info(f"{model} score: {gscv.best_score_}")
                     if gscv.best_score_ < best_score:
-                        best_model = gscv.best_estimator_
+                        best_model = gscv.best_forecaster_
                         best_params = {
                             "best_forecaster": model,
                             "best_params": gscv.best_params_,
@@ -269,14 +271,14 @@ class UnivariateStrategy(PreprocessingAndTrainingStrategy):
                 "powertransformer",
                 OptionalPassthrough(TabularToSeriesAdaptor(PowerTransformer())),
             )
-        elif transformer == "RobustScaler":
+        elif transformer == "MinMaxScaler":
             return (
                 "scaler",
-                OptionalPassthrough(TabularToSeriesAdaptor(RobustScaler())),
+                OptionalPassthrough(TabularToSeriesAdaptor(MinMaxScaler())),
             )
         return None
 
-    def _create_forecaster_step(self, model, seasonal_period):
+    def _create_forecaster_step(self, model):
         """Create a forecaster step based on model type."""
         if model == "SARIMAX":
             return (
@@ -286,16 +288,15 @@ class UnivariateStrategy(PreprocessingAndTrainingStrategy):
         elif model == "PolynomialTrendForecaster":
             return ("forecaster", PolynomialTrendForecaster())
         elif model == "ExponentialSmoothing":
-            return ("forecaster", ExponentialSmoothing(sp=seasonal_period))
+            return ("forecaster", ExponentialSmoothing())
         elif model == "ThetaForecaster":
-            return ("forecaster", ThetaForecaster(sp=seasonal_period))
+            return ("forecaster", ThetaForecaster())
         elif model == "NaiveForecaster":
-            return ("forecaster", NaiveForecaster(sp=seasonal_period))
+            return ("forecaster", NaiveForecaster())
         elif model == "AutoARIMA":
             return (
                 "forecaster",
                 AutoARIMA(
-                    sp=seasonal_period,
                 ),
             )
         elif model == "Prophet":
@@ -465,7 +466,6 @@ class MultivariateStrategy(PreprocessingAndTrainingStrategy):
             for model in config.chosen_models:
                 try:
                     logger.info(f"Training model: {model}")
-                    seasonal_period = {"D": 7, "W": 52, "M": 12, "Y": 1}.get(freq, 1)
                     param_grid = {}
 
                     pipe_y_steps, pipe_X_steps = [], []
@@ -487,7 +487,7 @@ class MultivariateStrategy(PreprocessingAndTrainingStrategy):
 
                     # Add forecaster to target pipeline
                     forecaster_step = self._create_forecaster_step(
-                        model, seasonal_period
+                        model
                     )
                     if forecaster_step:
                         pipe_y_steps.append(forecaster_step)
@@ -516,27 +516,27 @@ class MultivariateStrategy(PreprocessingAndTrainingStrategy):
 
                     # Create X pipeline
                     pipe_X = TransformedTargetForecaster(steps=pipe_X_steps)
-                    permuted_X = Permute(pipe_X, permutation=None)
+                    permuted_X = Permute(pipe_X)
 
                     # Generate permutations for both pipelines
                     y_transformers = [step[0] for step in pipe_y_steps[:-1]]
                     X_transformers = [step[0] for step in pipe_X_steps[:-1]]
 
                     y_permutations = list(
-                        itertools.permutations(y_transformers + ["forecaster"])
+                        itertools.permutations(y_transformers)
                     )
+                    y_permutations = [
+                        list(perm) + ["forecaster"] for perm in y_permutations
+                    ]
                     X_permutations = list(
-                        itertools.permutations(X_transformers + ["forecaster"])
+                        itertools.permutations(X_transformers)
                     )
+                    X_permutations = [
+                        list(perm) + ["forecaster"] for perm in X_permutations
+                    ]
 
                     # Update param grid with permutations
-                    param_grid.update(
-                        {
-                            "estimator__forecaster__permutation": y_permutations,
-                            "permutation": X_permutations,
-                        }
-                    )
-
+                    param_grid = {"estimator__forecaster__permutation": y_permutations, "permutation": X_permutations, **param_grid}
                     # Create and fit grid search
                     gscv = ForecastingGridSearchCV(
                         forecaster=permuted_X,
@@ -548,6 +548,8 @@ class MultivariateStrategy(PreprocessingAndTrainingStrategy):
                     gscv.fit(y=y_train, X=X_train, fh=fh)
 
                     # Update best model if current model has better score
+                    logger.info(f"Best score: {best_score}")
+                    logger.info(f"{model} score: {gscv.best_score_}")
                     if gscv.best_score_ < best_score:
                         best_model = gscv.best_forecaster_
                         best_params = {
@@ -583,14 +585,14 @@ class MultivariateStrategy(PreprocessingAndTrainingStrategy):
                 "powertransformer",
                 OptionalPassthrough(TabularToSeriesAdaptor(PowerTransformer())),
             )
-        elif transformer == "RobustScaler":
+        elif transformer == "MinMaxScaler":
             return (
                 "scaler",
-                OptionalPassthrough(TabularToSeriesAdaptor(RobustScaler())),
+                OptionalPassthrough(TabularToSeriesAdaptor(MinMaxScaler())),
             )
         return None
 
-    def _create_forecaster_step(self, model, seasonal_period):
+    def _create_forecaster_step(self, model):
         """Create a forecaster step based on model type."""
         if model == "SARIMAX":
             return (
@@ -600,15 +602,15 @@ class MultivariateStrategy(PreprocessingAndTrainingStrategy):
         elif model == "PolynomialTrendForecaster":
             return ("forecaster", PolynomialTrendForecaster())
         elif model == "ExponentialSmoothing":
-            return ("forecaster", ExponentialSmoothing(sp=seasonal_period))
+            return ("forecaster", ExponentialSmoothing())
         elif model == "ThetaForecaster":
-            return ("forecaster", ThetaForecaster(sp=seasonal_period))
+            return ("forecaster", ThetaForecaster())
         elif model == "NaiveForecaster":
-            return ("forecaster", NaiveForecaster(sp=seasonal_period))
+            return ("forecaster", NaiveForecaster())
         elif model == "AutoARIMA":
             return (
                 "forecaster",
-                AutoARIMA(sp=seasonal_period),
+                AutoARIMA(),
             )
         elif model == "Prophet":
             return ("forecaster", Prophet())

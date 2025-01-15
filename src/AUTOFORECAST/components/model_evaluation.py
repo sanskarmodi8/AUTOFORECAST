@@ -46,7 +46,7 @@ class UnivariateEvaluationStrategy(ModelEvaluationStrategy):
         """
 
         # Load the model
-        model = load_bin(config.model)
+        model = load_bin(Path(config.model))
 
         # get pred
         fh = np.arange(1, len(y_test) + 1)
@@ -63,7 +63,7 @@ class UnivariateEvaluationStrategy(ModelEvaluationStrategy):
                     y_train, y_test, y_pred, labels=["y_train", "y_test", "y_pred"]
                 )
                 plt.savefig(
-                    Path(config.forecast_vs_actual) / Path("Mean Absolute Error.png")
+                    Path(config.forecast_vs_actual_plot) / Path("Mean Absolute Error.png")
                 )
             elif metric == "Root Mean Squared Error":
                 mse = MeanSquaredError(square_root=True)
@@ -72,7 +72,7 @@ class UnivariateEvaluationStrategy(ModelEvaluationStrategy):
                     y_train, y_test, y_pred, labels=["y_train", "y_test", "y_pred"]
                 )
                 plt.savefig(
-                    Path(config.forecast_vs_actual)
+                    Path(config.forecast_vs_actual_plot)
                     / Path("Root Mean Squared Error.png")
                 )
             elif metric == "Symmetric Mean Absolute Percentage Error":
@@ -82,7 +82,7 @@ class UnivariateEvaluationStrategy(ModelEvaluationStrategy):
                     y_train, y_test, y_pred, labels=["y_train", "y_test", "y_pred"]
                 )
                 plt.savefig(
-                    Path(config.forecast_vs_actual)
+                    Path(config.forecast_vs_actual_plot)
                     / Path("Symmetric Mean Absolute Percentage Error.png")
                 )
             elif metric == "Mean Absolute Scaled Error":
@@ -92,7 +92,7 @@ class UnivariateEvaluationStrategy(ModelEvaluationStrategy):
                     y_train, y_test, y_pred, labels=["y_train", "y_test", "y_pred"]
                 )
                 plt.savefig(
-                    Path(config.forecast_vs_actual)
+                    Path(config.forecast_vs_actual_plot)
                     / Path("Mean Absolute Scaled Error.png")
                 )
             elif metric == "Mean Squared Scaled Error":
@@ -102,7 +102,7 @@ class UnivariateEvaluationStrategy(ModelEvaluationStrategy):
                     y_train, y_test, y_pred, labels=["y_train", "y_test", "y_pred"]
                 )
                 plt.savefig(
-                    Path(config.forecast_vs_actual)
+                    Path(config.forecast_vs_actual_plot)
                     / Path("Mean Squared Scaled Error.png")
                 )
             elif metric == "Median Absolute Error":
@@ -112,7 +112,7 @@ class UnivariateEvaluationStrategy(ModelEvaluationStrategy):
                     y_train, y_test, y_pred, labels=["y_train", "y_test", "y_pred"]
                 )
                 plt.savefig(
-                    Path(config.forecast_vs_actual) / Path("Median Absolute Error.png")
+                    Path(config.forecast_vs_actual_plot) / Path("Median Absolute Error.png")
                 )
             elif metric == "Median Squared Error":
                 medse = MedianSquaredError()
@@ -121,11 +121,11 @@ class UnivariateEvaluationStrategy(ModelEvaluationStrategy):
                     y_train, y_test, y_pred, labels=["y_train", "y_test", "y_pred"]
                 )
                 plt.savefig(
-                    Path(config.forecast_vs_actual) / Path("Median Squared Error.png")
+                    Path(config.forecast_vs_actual_plot) / Path("Median Squared Error.png")
                 )
 
         # save scores
-        save_json(scores, config.scores)
+        save_json(Path(config.scores), scores)
 
 
 class MultivariateEvaluationStrategy(ModelEvaluationStrategy):
@@ -146,11 +146,12 @@ class MultivariateEvaluationStrategy(ModelEvaluationStrategy):
         """
 
         # Load the model
-        model = load_bin(config.model)
+        model = load_bin(Path(config.model))
 
         # get pred
         fh = np.arange(1, len(y_test) + 1)
-        y_pred = model.predict(X_test, fh)
+        y_pred = model.predict(fh, X=X_test)
+        y_pred.index = y_pred.index.to_timestamp()
 
         # Evaluate model on each of the chosen metrics
         scores = {}
@@ -163,7 +164,7 @@ class MultivariateEvaluationStrategy(ModelEvaluationStrategy):
                     y_train, y_test, y_pred, labels=["y_train", "y_test", "y_pred"]
                 )
                 plt.savefig(
-                    Path(config.forecast_vs_actual) / Path("Mean Absolute Error.png")
+                    Path(config.forecast_vs_actual_plot) / Path("Mean Absolute Error.png")
                 )
             elif metric == "Root Mean Squared Error":
                 mse = MeanSquaredError(square_root=True)
@@ -172,7 +173,7 @@ class MultivariateEvaluationStrategy(ModelEvaluationStrategy):
                     y_train, y_test, y_pred, labels=["y_train", "y_test", "y_pred"]
                 )
                 plt.savefig(
-                    Path(config.forecast_vs_actual)
+                    Path(config.forecast_vs_actual_plot)
                     / Path("Root Mean Squared Error.png")
                 )
             elif metric == "Symmetric Mean Absolute Percentage Error":
@@ -182,7 +183,7 @@ class MultivariateEvaluationStrategy(ModelEvaluationStrategy):
                     y_train, y_test, y_pred, labels=["y_train", "y_test", "y_pred"]
                 )
                 plt.savefig(
-                    Path(config.forecast_vs_actual)
+                    Path(config.forecast_vs_actual_plot)
                     / Path("Symmetric Mean Absolute Percentage Error.png")
                 )
             elif metric == "Mean Absolute Scaled Error":
@@ -192,7 +193,7 @@ class MultivariateEvaluationStrategy(ModelEvaluationStrategy):
                     y_train, y_test, y_pred, labels=["y_train", "y_test", "y_pred"]
                 )
                 plt.savefig(
-                    Path(config.forecast_vs_actual)
+                    Path(config.forecast_vs_actual_plot)
                     / Path("Mean Absolute Scaled Error.png")
                 )
             elif metric == "Mean Squared Scaled Error":
@@ -202,7 +203,7 @@ class MultivariateEvaluationStrategy(ModelEvaluationStrategy):
                     y_train, y_test, y_pred, labels=["y_train", "y_test", "y_pred"]
                 )
                 plt.savefig(
-                    Path(config.forecast_vs_actual)
+                    Path(config.forecast_vs_actual_plot)
                     / Path("Mean Squared Scaled Error.png")
                 )
             elif metric == "Median Absolute Error":
@@ -212,7 +213,7 @@ class MultivariateEvaluationStrategy(ModelEvaluationStrategy):
                     y_train, y_test, y_pred, labels=["y_train", "y_test", "y_pred"]
                 )
                 plt.savefig(
-                    Path(config.forecast_vs_actual) / Path("Median Absolute Error.png")
+                    Path(config.forecast_vs_actual_plot) / Path("Median Absolute Error.png")
                 )
             elif metric == "Median Squared Error":
                 medse = MedianSquaredError()
@@ -221,11 +222,11 @@ class MultivariateEvaluationStrategy(ModelEvaluationStrategy):
                     y_train, y_test, y_pred, labels=["y_train", "y_test", "y_pred"]
                 )
                 plt.savefig(
-                    Path(config.forecast_vs_actual) / Path("Median Squared Error.png")
+                    Path(config.forecast_vs_actual_plot) / Path("Median Squared Error.png")
                 )
 
         # save scores
-        save_json(scores, config.scores)
+        save_json(Path(config.scores), scores)
 
 
 class ModelEvaluation:
@@ -283,7 +284,7 @@ class ModelEvaluation:
 
         # Select strategy based on feature data availability
         self.strategy = (
-            UnivariateStrategy() if self.x_test is None else MultivariateStrategy()
+            UnivariateEvaluationStrategy() if self.x_test is None else MultivariateEvaluationStrategy()
         )
 
     def evaluate(self):

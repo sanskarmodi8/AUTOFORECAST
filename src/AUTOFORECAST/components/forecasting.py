@@ -12,7 +12,7 @@ from AUTOFORECAST.utils.common import load_bin
 class Forecasting:
     def __init__(self, config: ForecastingConfig):
         self.config = config
-        self.model = load_bin(config.model)
+        self.model = load_bin(Path(config.model))
         self.y_test = pd.read_csv(
             Path(config.test_data_dir) / Path("y.csv"), parse_dates=True, index_col=0
         )
@@ -23,8 +23,9 @@ class Forecasting:
     def forecast(self):
 
         # get pred
-        fh = np.arange(1, len(self.config.fh) + 1)
+        fh = np.arange(1, self.config.fh + 1)
         y_pred = self.model.predict(fh)
+        y_pred.index = y_pred.index.to_timestamp()
 
         # save the forecast plot
         plot_series(
@@ -36,5 +37,5 @@ class Forecasting:
         plt.savefig(self.config.forecast_plot)
 
         # save forecast as csv
-        forecast_data = pd.DataFrame({"fh": fh, "forecast_with_given_fh": y_pred})
+        forecast_data = pd.DataFrame(y_pred)
         forecast_data.to_csv(Path(self.config.forecast_data), index=False)
