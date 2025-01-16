@@ -2,11 +2,7 @@ from zenml.pipelines import pipeline
 
 
 @pipeline
-def forecasting_pipeline(
-    preprocess_and_train, 
-    evaluate, 
-    forecast
-):
+def forecasting_pipeline(preprocess_and_train, evaluate, forecast):
     """
     A ZenML pipeline for forecasting that executes three main steps:
     1. Preprocessing and Training: Prepares the data and trains the model.
@@ -16,6 +12,6 @@ def forecasting_pipeline(
     Each step is represented by a function passed as an argument to the pipeline.
     """
 
-    preprocess_and_train()
+    # preprocess_and_train()
     evaluate()
     forecast()

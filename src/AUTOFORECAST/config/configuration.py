@@ -48,7 +48,7 @@ class ConfigurationManager:
             ModelEvaluationConfig: The configuration for model evaluation.
         """
         config = self.config.model_evaluation
-        create_directories([Path(config.root_dir), Path(config.forecast_vs_actual_plot)])
+        create_directories([Path(config.root_dir)])
         return ModelEvaluationConfig(
             root_dir=config.root_dir,
             model=config.model,

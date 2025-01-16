@@ -4,7 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import PowerTransformer, MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, PowerTransformer
 from sktime.forecasting.arima import ARIMA, AutoARIMA
 from sktime.forecasting.compose import Permute, TransformedTargetForecaster
 from sktime.forecasting.exp_smoothing import ExponentialSmoothing
@@ -16,9 +16,9 @@ from sktime.forecasting.model_selection import (
 )
 from sktime.forecasting.naive import NaiveForecaster
 from sktime.forecasting.sarimax import SARIMAX
-from sktime.performance_metrics.forecasting import MeanAbsolutePercentageError
 from sktime.forecasting.theta import ThetaForecaster
 from sktime.forecasting.trend import PolynomialTrendForecaster
+from sktime.performance_metrics.forecasting import MeanAbsolutePercentageError
 from sktime.transformations.compose import OptionalPassthrough
 from sktime.transformations.series.adapt import TabularToSeriesAdaptor
 from sktime.transformations.series.boxcox import LogTransformer
@@ -165,7 +165,7 @@ class UnivariateStrategy(PreprocessingAndTrainingStrategy):
 
             if len(y_train) < 3:
                 raise ValueError("Not enough training data points after splitting")
-            
+
             # Save test data and train data
             train_data_path = Path(config.train_data_dir) / Path("y.csv")
             y_train.to_csv(train_data_path)
@@ -198,16 +198,14 @@ class UnivariateStrategy(PreprocessingAndTrainingStrategy):
                             param_grid.update(AVAIL_TRANSFORMERS_GRID[transformer])
 
                     # Add forecaster to steps
-                    forecaster_step = self._create_forecaster_step(
-                        model
-                    )
+                    forecaster_step = self._create_forecaster_step(model)
                     if forecaster_step:
                         steps.append(forecaster_step)
                         # Update parameter grid with model parameters
                         param_grid.update(AVAIL_MODELS_GRID[model])
 
                     # Generate permutations of steps with forecaster as last step each time
-                    
+
                     transformers_names = [step[0] for step in steps[:-1]]
                     permutations = list(itertools.permutations(transformers_names))
                     permutations = [
@@ -296,8 +294,7 @@ class UnivariateStrategy(PreprocessingAndTrainingStrategy):
         elif model == "AutoARIMA":
             return (
                 "forecaster",
-                AutoARIMA(
-                ),
+                AutoARIMA(),
             )
         elif model == "Prophet":
             return ("forecaster", Prophet())
@@ -486,9 +483,7 @@ class MultivariateStrategy(PreprocessingAndTrainingStrategy):
                             )
 
                     # Add forecaster to target pipeline
-                    forecaster_step = self._create_forecaster_step(
-                        model
-                    )
+                    forecaster_step = self._create_forecaster_step(model)
                     if forecaster_step:
                         pipe_y_steps.append(forecaster_step)
                         # Update param grid with model parameters
@@ -522,21 +517,21 @@ class MultivariateStrategy(PreprocessingAndTrainingStrategy):
                     y_transformers = [step[0] for step in pipe_y_steps[:-1]]
                     X_transformers = [step[0] for step in pipe_X_steps[:-1]]
 
-                    y_permutations = list(
-                        itertools.permutations(y_transformers)
-                    )
+                    y_permutations = list(itertools.permutations(y_transformers))
                     y_permutations = [
                         list(perm) + ["forecaster"] for perm in y_permutations
                     ]
-                    X_permutations = list(
-                        itertools.permutations(X_transformers)
-                    )
+                    X_permutations = list(itertools.permutations(X_transformers))
                     X_permutations = [
                         list(perm) + ["forecaster"] for perm in X_permutations
                     ]
 
                     # Update param grid with permutations
-                    param_grid = {"estimator__forecaster__permutation": y_permutations, "permutation": X_permutations, **param_grid}
+                    param_grid = {
+                        "estimator__forecaster__permutation": y_permutations,
+                        "permutation": X_permutations,
+                        **param_grid,
+                    }
                     # Create and fit grid search
                     gscv = ForecastingGridSearchCV(
                         forecaster=permuted_X,
