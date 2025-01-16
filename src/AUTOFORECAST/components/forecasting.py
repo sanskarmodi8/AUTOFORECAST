@@ -23,7 +23,7 @@ class Forecasting:
     def forecast(self):
 
         # get pred
-        fh = np.arange(len(self.y_test) + 1, self.config.fh + 1)
+        fh = np.arange(len(self.y_test) + 1, len(self.y_test) + self.config.fh + 1)
         y_pred = self.model.predict(fh)
         y_pred.index = y_pred.index.to_timestamp()
 
@@ -37,5 +37,6 @@ class Forecasting:
         plt.savefig(self.config.forecast_plot)
 
         # save forecast as csv
+        logger.info(f"y_pred: {y_pred}")
         forecast_data = pd.DataFrame(y_pred)
         forecast_data.to_csv(Path(self.config.forecast_data), index=False)

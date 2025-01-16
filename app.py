@@ -68,12 +68,12 @@ def set_datetime_index(df):
     return df
 
 
-def save_final_dataset(df, target_column, uni_or_mul):
+def save_final_dataset(df, target_column, with_or_without):
     """Save the CSV data in appropiate manner."""
     y = df[target_column]
     create_directories([DATA_DIR])
     y.to_csv(f"{DATA_DIR}/y.csv")
-    if uni_or_mul == "Multivariate":
+    if with_or_without == "With Exogenous Data":
         X = df.drop(target_column, axis=1)
         X.to_csv(f"{DATA_DIR}/X.csv")
 
@@ -96,18 +96,29 @@ if data is not None:
         placeholder="Select Target Column",
     )
 
-    # Select Univariate or Multivariate
-    uni_or_mul = st.radio(
-        "Univariate or Multivariate?",
-        ["Univariate", "Multivariate"],
-        help="Univariate forecasting involves forecasting the target variable by itself, while multivariate forecasting involves forecasting the target variable using other indipendent/exogenous variables.",
+    # Forecast Horizon
+    fh = st.number_input(
+        "Select forecast horizon (fh):",
+        min_value=1,
+        help="Forecast horizon is the number of time steps to forecast into the future.",
+        value=7,
     )
-    if uni_or_mul == "Multivariate":
+    st.write("")
+    # choice for exog data
+    with_or_without = st.radio(
+        "You want to do forecasting with or without exogenous variables?",
+        ["Without Exogenous Data", "With Exogenous Data"],
+        help="Exogenous variables are independent variables used to forecast the target variable.",
+    )
+
+    if with_or_without == "With Exogenous Data":
+        st.info(
+            "Please make sure that you have at least 'fh' number of future values of the exogenous variables. This is required for forecasting if the model is trained using Exogenous Data. Otherwise, you should select 'Without Exogenous Data'."
+        )
         exogenous_options = [col for col in df.columns if col != target_column]
         exogenous_columns = st.multiselect(
             "Select exogenous columns:",
             exogenous_options,
-            help="Exogenous columns are independent variables used to forecast the target variable.",
             placeholder="Select Exogenous Columns",
         )
         df = df[[target_column] + exogenous_columns]
@@ -115,27 +126,36 @@ if data is not None:
         df = df[[target_column]]
 
     # Display Dataset
+    st.write("")
     st.write("Dataset preview:")
     st.dataframe(df)
 
     # Save data to CSV for future processing
-    save_final_dataset(df, target_column, uni_or_mul)
+    save_final_dataset(df, target_column, with_or_without)
 
 # Select Transformer(s)
 transformations = st.multiselect(
     "Select Transformer(s)",
     AVAIL_TRANSFORMERS,
     placeholder="Select Transformer(s)",
-    help="Transformers are used to preprocess the data before forecasting. You can select multiple transformers, we will take care of the best possible ordering. Just remember, the more transformers you select, the more time it will take to forecast, or the app may crash if the memory exceeds.",
+    help="Transformers are used to preprocess the data before forecasting. You can select none of the transformer or multiple transformers. We will take care of the best possible ordering, if you selected more than one.",
 )
+if len(transformations) > 1:
+    st.info(
+        "Just remember, the more transformers you select, the more time it will take to forecast, or the app may even crash if the memory exceeds."
+    )
 
 # Select Model(s)
 models = st.multiselect(
     "Select Model(s)",
     AVAIL_MODELS,
     placeholder="Select Model(s)",
-    help="Models are used to forecast the target variable. You can select multiple models, we will choose the best performing one. Just remember, the more models you select, the more time it will take to forecast, or the app may crash if the memory exceeds.",
+    help="Models are used to forecast the target variable. You can select multiple models, we will choose the best performing one.",
 )
+if len(models) > 1:
+    st.info(
+        "Just remember, the more models you select, the more time it will take to forecast, or the app may even crash if the memory exceeds."
+    )
 
 # Select Metric(s)
 metrics = st.multiselect(
@@ -143,14 +163,6 @@ metrics = st.multiselect(
     AVAIL_METRICS,
     placeholder="Select Metric(s)",
     help="Metrics are used to evaluate the performance of the model. You can select multiple metrics, we will evaluate on each one of what you selected.",
-)
-
-# Forecast Horizon
-fh = st.number_input(
-    "Select forecast horizon:",
-    min_value=1,
-    help="Forecast horizon is the number of time steps to forecast into the future.",
-    value=7,
 )
 
 # Forecast Button
@@ -172,7 +184,7 @@ if st.button("Forecast"):
         os.system("zenml up")
         os.system("zenml init")
         forecasting_pipeline(
-            # preprocess_and_train_step(),
+            preprocess_and_train_step(),
             evaluate_step(),
             forecast_step(),
         ).run()
