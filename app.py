@@ -6,6 +6,7 @@ import streamlit as st
 import yaml
 import zenml
 
+from src.AUTOFORECAST import logger
 from src.AUTOFORECAST.constants import (
     AVAIL_METRICS,
     AVAIL_MODELS,
@@ -14,11 +15,6 @@ from src.AUTOFORECAST.constants import (
     PARAMS_FILE_PATH,
 )
 from src.AUTOFORECAST.pipeline.pipeline import forecasting_pipeline
-from src.AUTOFORECAST.pipeline.stage_01_preprocessing_and_training import (
-    preprocess_and_train_step,
-)
-from src.AUTOFORECAST.pipeline.stage_02_model_evaluation import evaluate_step
-from src.AUTOFORECAST.pipeline.stage_03_forecasting import forecast_step
 from src.AUTOFORECAST.utils.common import create_directories, save_yaml
 
 # set environment variables
@@ -63,8 +59,8 @@ def set_datetime_index(df):
         df["datetime"] = pd.to_datetime(df[datetime])
         if datetime != "datetime":
             df = df.drop(datetime, axis=1)
-        df.sort_values(datetime, inplace=True)
-        df.set_index(datetime, inplace=True)
+        df.sort_values("datetime", inplace=True)
+        df.set_index("datetime", inplace=True)
     return df
 
 
@@ -104,26 +100,30 @@ if data is not None:
         value=7,
     )
     st.write("")
-    # choice for exog data
-    with_or_without = st.radio(
-        "You want to do forecasting with or without exogenous variables?",
-        ["Without Exogenous Data", "With Exogenous Data"],
-        help="Exogenous variables are independent variables used to forecast the target variable.",
-    )
 
-    if with_or_without == "With Exogenous Data":
-        st.info(
-            "Please make sure that you have at least 'fh' number of future values of the exogenous variables. This is required for forecasting if the model is trained using Exogenous Data. Otherwise, you should select 'Without Exogenous Data'."
+    if len(df.columns)>1:
+        # choice for exog data
+        with_or_without = st.radio(
+            "You want to do forecasting with or without exogenous variables?",
+            ["Without Exogenous Data", "With Exogenous Data"],
+            help="Exogenous variables are independent variables used to forecast the target variable.",
         )
-        exogenous_options = [col for col in df.columns if col != target_column]
-        exogenous_columns = st.multiselect(
-            "Select exogenous columns:",
-            exogenous_options,
-            placeholder="Select Exogenous Columns",
-        )
-        df = df[[target_column] + exogenous_columns]
+
+        if with_or_without == "With Exogenous Data":
+            st.info(
+                "Please make sure that you have at least 'fh' number of future values of the exogenous variables. This is required for forecasting if the model is trained using Exogenous Data. Otherwise, you should select 'Without Exogenous Data'."
+            )
+            exogenous_options = [col for col in df.columns if col != target_column]
+            exogenous_columns = st.multiselect(
+                "Select exogenous columns:",
+                exogenous_options,
+                placeholder="Select Exogenous Columns",
+            )
+            df = df[[target_column] + exogenous_columns]
+        else:
+            df = df[[target_column]]
     else:
-        df = df[[target_column]]
+        with_or_without = "Without Exogenous Data"
 
     # Display Dataset
     st.write("")
@@ -183,10 +183,7 @@ if st.button("Forecast"):
         # Run the forecasting pipeline
         os.system("zenml up")
         os.system("zenml init")
-        forecasting_pipeline(
-            preprocess_and_train_step(),
-            evaluate_step(),
-            forecast_step(),
-        ).run()
+        run = forecasting_pipeline()
+        logger.info(f"Zenml Pipeline run: {run}")
         # TODO: Display the results
         st.success("Forecasting completed!")

@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from sktime.utils.plotting import plot_series
 
+from AUTOFORECAST import logger
 from AUTOFORECAST.entity.config_entity import ForecastingConfig
 from AUTOFORECAST.utils.common import load_bin
 
@@ -37,6 +38,5 @@ class Forecasting:
         plt.savefig(self.config.forecast_plot)
 
         # save forecast as csv
-        logger.info(f"y_pred: {y_pred}")
         forecast_data = pd.DataFrame(y_pred)
         forecast_data.to_csv(Path(self.config.forecast_data), index=False)
