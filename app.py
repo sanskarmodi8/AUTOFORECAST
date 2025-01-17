@@ -64,14 +64,11 @@ def set_datetime_index(df):
     return df
 
 
-def save_final_dataset(df, target_column, with_or_without):
+def save_final_dataset(df, target_column):
     """Save the CSV data in appropiate manner."""
     y = df[target_column]
     create_directories([DATA_DIR])
     y.to_csv(f"{DATA_DIR}/y.csv")
-    if with_or_without == "With Exogenous Data":
-        X = df.drop(target_column, axis=1)
-        X.to_csv(f"{DATA_DIR}/X.csv")
 
 
 # Streamlit Interface
@@ -101,37 +98,12 @@ if data is not None:
     )
     st.write("")
 
-    if len(df.columns)>1:
-        # choice for exog data
-        with_or_without = st.radio(
-            "You want to do forecasting with or without exogenous variables?",
-            ["Without Exogenous Data", "With Exogenous Data"],
-            help="Exogenous variables are independent variables used to forecast the target variable.",
-        )
-
-        if with_or_without == "With Exogenous Data":
-            st.info(
-                "Please make sure that you have at least 'fh' number of future values of the exogenous variables. This is required for forecasting if the model is trained using Exogenous Data. Otherwise, you should select 'Without Exogenous Data'."
-            )
-            exogenous_options = [col for col in df.columns if col != target_column]
-            exogenous_columns = st.multiselect(
-                "Select exogenous columns:",
-                exogenous_options,
-                placeholder="Select Exogenous Columns",
-            )
-            df = df[[target_column] + exogenous_columns]
-        else:
-            df = df[[target_column]]
-    else:
-        with_or_without = "Without Exogenous Data"
-
     # Display Dataset
-    st.write("")
     st.write("Dataset preview:")
     st.dataframe(df)
 
     # Save data to CSV for future processing
-    save_final_dataset(df, target_column, with_or_without)
+    save_final_dataset(df, target_column)
 
 # Select Transformer(s)
 transformations = st.multiselect(
@@ -169,7 +141,7 @@ metrics = st.multiselect(
 if st.button("Forecast"):
     # check if the user provided data is valid
     if len(models) == 0 or len(metrics) == 0:
-        st.error("Please select at least one transformer, model, and metric.")
+        st.error("Please select at least one model, and metric.")
         st.stop()
     # save the user provided data in yaml file
     params = {
@@ -184,6 +156,6 @@ if st.button("Forecast"):
         os.system("zenml up")
         os.system("zenml init")
         run = forecasting_pipeline()
-        logger.info(f"Zenml Pipeline run: {run}")
+        logger.info("Zenml pipeline run :- \n\n{}".format(run))
         # TODO: Display the results
         st.success("Forecasting completed!")

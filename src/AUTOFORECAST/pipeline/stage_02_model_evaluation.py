@@ -14,10 +14,12 @@ def evaluate_step(success: bool) -> bool:
 
     This step will load the saved model, load the test data, and evaluate the model using the chosen metrics.
     """
-    
+
     try:
         if not success:
-            logger.error("PREPROCESSING AND MODEL TRAINING STAGE FAILED. SKIPPING OTHER STAGES")
+            logger.error(
+                "PREPROCESSING AND MODEL TRAINING STAGE FAILED. SKIPPING OTHER STAGES"
+            )
             return False
         logger.info(f"{STAGE_NAME} STARTED")
         config = ConfigurationManager().get_model_evaluation_config()

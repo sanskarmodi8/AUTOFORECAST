@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -10,10 +11,66 @@ from AUTOFORECAST.entity.config_entity import ForecastingConfig
 from AUTOFORECAST.utils.common import load_bin
 
 
+class ForecastingStrategy(ABC):
+    @abstractmethod
+    def forecast(self, y_test, y_train, config):
+        pass
+
+
+class UnivariateForecastingStrategy(ForecastingStrategy):
+    def forecast(self, y_test, y_train, config):
+        """
+        Make forecast using the trained model, save the forecast plot and forecasted data.
+
+        Args:
+            y_test (pd.DataFrame): Target variable data loaded from 'y.csv'.
+            y_train (pd.DataFrame): Data used for training the model.
+            config (ForecastingConfig): Configuration object containing
+                necessary paths and parameters for forecasting.
+
+        Saves:
+            forecast_plot (Path): Path to the forecast plot.
+            forecast_data (Path): Path to the forecasted data.
+        """
+
+        # Load the model
+        model = load_bin(Path(config.model))
+
+        # get pred
+        fh = np.arange(len(y_test) + 1, len(y_test) + config.fh + 1)
+        y_pred = model.predict(fh)
+        y_pred.index = y_pred.index.to_timestamp()
+
+        # save the forecast plot
+        plot_series(
+            y_train,
+            y_test,
+            y_pred,
+            labels=["y_train", "y_test", "forecast_with_given_fh"],
+        )
+        plt.savefig(config.forecast_plot)
+
+        # save forecast as csv
+        forecast_data = pd.DataFrame(y_pred)
+        forecast_data.to_csv(Path(config.forecast_data), index=False)
+
+
 class Forecasting:
     def __init__(self, config: ForecastingConfig):
+        """
+        Initialize the Forecasting class.
+
+        Args:
+            config (ForecastingConfig): Configuration object containing
+                necessary paths and parameters for forecasting.
+
+        Attributes:
+            y_test (pd.DataFrame): Target variable data loaded from 'y.csv'.
+            y_train (pd.DataFrame): Data used for training the model.
+            strategy (ForecastingStrategy): Strategy for forecasting.
+
+        """
         self.config = config
-        self.model = load_bin(Path(config.model))
         self.y_test = pd.read_csv(
             Path(config.test_data_dir) / Path("y.csv"), parse_dates=True, index_col=0
         )
@@ -21,22 +78,10 @@ class Forecasting:
             Path(config.train_data_dir) / Path("y.csv"), parse_dates=True, index_col=0
         )
 
+        if len(self.y_train.columns) == 1:
+            self.strategy = UnivariateForecastingStrategy()
+        # TODO: Add support for MultivariateForecastingStrategy
+
     def forecast(self):
-
-        # get pred
-        fh = np.arange(len(self.y_test) + 1, len(self.y_test) + self.config.fh + 1)
-        y_pred = self.model.predict(fh)
-        y_pred.index = y_pred.index.to_timestamp()
-
-        # save the forecast plot
-        plot_series(
-            self.y_train,
-            self.y_test,
-            y_pred,
-            labels=["y_train", "y_test", "forecast_with_given_fh"],
-        )
-        plt.savefig(self.config.forecast_plot)
-
-        # save forecast as csv
-        forecast_data = pd.DataFrame(y_pred)
-        forecast_data.to_csv(Path(self.config.forecast_data), index=False)
+        # use the appropriate strategy to forecast
+        self.strategy.forecast(self.y_test, self.y_train, self.config)

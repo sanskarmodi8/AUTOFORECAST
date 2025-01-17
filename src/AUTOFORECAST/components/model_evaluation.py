@@ -10,9 +10,14 @@ from sktime.performance_metrics.forecasting import (
     MeanAbsolutePercentageError,
     MeanAbsoluteScaledError,
     MeanSquaredError,
+    MeanSquaredPercentageError,
     MeanSquaredScaledError,
     MedianAbsoluteError,
+    MedianAbsolutePercentageError,
+    MedianAbsoluteScaledError,
     MedianSquaredError,
+    MedianSquaredPercentageError,
+    MedianSquaredScaledError,
 )
 from sktime.utils.plotting import plot_series
 
@@ -28,7 +33,7 @@ class ModelEvaluationStrategy(ABC):
         pass
 
 
-class UnivariateEvaluationStrategy(ModelEvaluationStrategy):
+class UnivariateWithoutExogData(ModelEvaluationStrategy):
     def evaluate(self, y_train, y_test, X_test, config: ModelEvaluationConfig):
         """
         Evaluate the model using the specified metrics and save the evaluation results.
@@ -72,13 +77,9 @@ class UnivariateEvaluationStrategy(ModelEvaluationStrategy):
                 smape = MeanAbsolutePercentageError(symmetric=True)
                 scores[metric] = smape(y_test, y_pred)
 
-            elif metric == "Mean Absolute Scaled Error":
-                mase = MeanAbsoluteScaledError()
-                scores[metric] = mase(y_test, y_pred)
-
-            elif metric == "Mean Squared Scaled Error":
-                msse = MeanSquaredScaledError()
-                scores[metric] = msse(y_test, y_pred)
+            elif metric == "Symmetric Mean Squared Percentage Error":
+                smse = MeanSquaredPercentageError(symmetric=True)
+                scores[metric] = smse(y_test, y_pred)
 
             elif metric == "Median Absolute Error":
                 medae = MedianAbsoluteError()
@@ -88,69 +89,13 @@ class UnivariateEvaluationStrategy(ModelEvaluationStrategy):
                 medse = MedianSquaredError()
                 scores[metric] = medse(y_test, y_pred)
 
-        # save scores
-        save_json(Path(config.scores), scores)
+            elif metric == "Median Squared Percentage Error":
+                medmse = MedianSquaredPercentageError()
+                scores[metric] = medmse(y_test, y_pred)
 
-
-class MultivariateEvaluationStrategy(ModelEvaluationStrategy):
-    def evaluate(self, y_train, y_test, X_test, config: ModelEvaluationConfig):
-        """
-        Evaluate the model using the specified metrics and save the evaluation results.
-
-        This method loads the test data and a pre-trained model, uses the model to
-        predict future values, and evaluates the prediction using the metrics specified
-        in the configuration. The evaluation scores are saved to a JSON file, and plots
-        comparing the predicted and actual values are saved for each metric.
-
-        Args:
-            config (ModelEvaluationConfig): Configuration object containing paths to
-            the model, test data, chosen metrics, and directories for saving scores
-            and plots.
-
-        """
-
-        # Load the model
-        model = load_bin(Path(config.model))
-
-        # get pred
-        fh = np.arange(1, len(y_test) + 1)
-        y_pred = model.predict(fh, X=X_test)
-        y_pred.index = y_pred.index.to_timestamp()
-
-        plot_series(y_train, y_test, y_pred, labels=["y_train", "y_test", "y_pred"])
-        plt.savefig(config.forecast_vs_actual_plot)
-
-        # Evaluate model on each of the chosen metrics
-        scores = {}
-        for metric in config.chosen_metrics:
-            logger.info("Evaluating model on metric - {}".format(metric))
-            if metric == "Mean Absolute Error":
-                mae = MeanAbsoluteError()
-                scores[metric] = mae(y_test, y_pred)
-
-            elif metric == "Root Mean Squared Error":
-                mse = MeanSquaredError(square_root=True)
-                scores[metric] = mse(y_test, y_pred)
-
-            elif metric == "Symmetric Mean Absolute Percentage Error":
-                smape = MeanAbsolutePercentageError(symmetric=True)
-                scores[metric] = smape(y_test, y_pred)
-
-            elif metric == "Mean Absolute Scaled Error":
-                mase = MeanAbsoluteScaledError()
-                scores[metric] = mase(y_test, y_pred)
-
-            elif metric == "Mean Squared Scaled Error":
-                msse = MeanSquaredScaledError()
-                scores[metric] = msse(y_test, y_pred)
-
-            elif metric == "Median Absolute Error":
-                medae = MedianAbsoluteError()
-                scores[metric] = medae(y_test, y_pred)
-
-            elif metric == "Median Squared Error":
-                medse = MedianSquaredError()
-                scores[metric] = medse(y_test, y_pred)
+            elif metric == "Median Absolute Percentage Error":
+                medmae = MedianAbsolutePercentageError()
+                scores[metric] = medmae(y_test, y_pred)
 
         # save scores
         save_json(Path(config.scores), scores)
@@ -169,8 +114,7 @@ class ModelEvaluation:
             y_test (pd.DataFrame): Target variable data loaded from 'y.csv'.
             x_test (pd.DataFrame or None): Feature data loaded from 'X.csv'. If the file
                 doesn't exist, x_test is set to None.
-            strategy (ModelEvaluationStrategy): Strategy for model evaluation, selected based
-                on whether feature data is available (univariate or multivariate).
+            strategy (ModelEvaluationStrategy): Strategy for model evaluation
 
         Raises:
             ValueError: If the target variable data is empty or cannot be read.
@@ -209,12 +153,10 @@ class ModelEvaluation:
             # if feature data is not available, set to None
             self.x_test = None
 
-        # Select strategy based on feature data availability
-        self.strategy = (
-            UnivariateEvaluationStrategy()
-            if self.x_test is None
-            else MultivariateEvaluationStrategy()
-        )
+        # Select strategy
+        if self.x_test is None and len(self.y_train.columns) == 1:
+            self.strategy = UnivariateWithoutExogData()
+        # TODO: Add support for more Evaluation strategies - MultivariateWithExogData, MultivariateWithoutExogData and UnivariateWithExogData
 
     def evaluate(self):
         """Run model evaluation using appropriate strategy"""

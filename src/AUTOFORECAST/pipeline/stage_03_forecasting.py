@@ -14,7 +14,7 @@ def forecast_step(success: bool) -> None:
 
     This step will load the saved model, use the given fh, and make forecasts using the saved model.
     """
-    
+
     try:
         if not success:
             logger.error("MODEL EVALUATION STAGE FAILED. SKIPPING FORECASTING STAGE")
