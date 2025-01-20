@@ -1,10 +1,10 @@
 import itertools
+import warnings
 from abc import ABC, abstractmethod
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from sktime.forecasting.arima import AutoARIMA
 from sktime.forecasting.compose import Permute, TransformedTargetForecaster
 from sktime.forecasting.fbprophet import Prophet
 from sktime.forecasting.model_selection import (
@@ -12,19 +12,19 @@ from sktime.forecasting.model_selection import (
     ForecastingGridSearchCV,
     temporal_train_test_split,
 )
-from sktime.forecasting.sarimax import SARIMAX
 from sktime.forecasting.trend import PolynomialTrendForecaster
 from sktime.performance_metrics.forecasting import MeanAbsolutePercentageError
 from sktime.transformations.compose import OptionalPassthrough
 from sktime.transformations.series.adapt import TabularToSeriesAdaptor
-from sktime.transformations.series.boxcox import BoxCoxTransformer, LogTransformer
-from sktime.transformations.series.detrend import Detrender
+from sktime.transformations.series.boxcox import LogTransformer
 from sktime.transformations.series.exponent import ExponentTransformer
 
 from AUTOFORECAST import logger
 from AUTOFORECAST.constants import AVAIL_MODELS_GRID, AVAIL_TRANSFORMERS_GRID, DATA_DIR
 from AUTOFORECAST.entity.config_entity import PreprocessingAndTrainingConfig
 from AUTOFORECAST.utils.common import save_bin, save_json
+
+warnings.filterwarnings("ignore")
 
 
 class PreprocessingAndTrainingStrategy(ABC):
@@ -251,30 +251,16 @@ class UnivariateWithoutExogData(PreprocessingAndTrainingStrategy):
 
     def _create_transformer_step(self, transformer):
         """Create a transformer step based on transformer type."""
-        if transformer == "Detrender":
-            return ("detrender", OptionalPassthrough(Detrender()))
+        if transformer == "ExponentTransformer":
+            return ("exponenttransformer", OptionalPassthrough(ExponentTransformer()))
         elif transformer == "LogTransformer":
             return ("logtransformer", OptionalPassthrough(LogTransformer()))
-        elif transformer == "ExponentTransformer":
-            return ("exponenttransformer", OptionalPassthrough(ExponentTransformer()))
-        elif transformer == "BoxCoxTransformer":
-            return ("boxcoxtransformer", OptionalPassthrough(BoxCoxTransformer()))
         return None
 
     def _create_forecaster_step(self, model, freq):
         """Create a forecaster step based on model type."""
-        if model == "SARIMAX":
-            return (
-                "forecaster",
-                SARIMAX(),
-            )
-        elif model == "PolynomialTrendForecaster":
+        if model == "PolynomialTrendForecaster":
             return ("forecaster", PolynomialTrendForecaster())
-        elif model == "AutoARIMA":
-            return (
-                "forecaster",
-                AutoARIMA(),
-            )
         elif model == "Prophet":
             return ("forecaster", Prophet(freq=freq))
         return None

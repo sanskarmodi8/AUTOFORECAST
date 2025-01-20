@@ -1,12 +1,15 @@
 import csv
 import os
 
+import joblib
 import pandas as pd
 import streamlit as st
 import yaml
 import zenml
+from pathlib import Path
 
 from src.AUTOFORECAST import logger
+from src.AUTOFORECAST.config.configuration import ConfigurationManager
 from src.AUTOFORECAST.constants import (
     AVAIL_METRICS,
     AVAIL_MODELS,
@@ -15,7 +18,7 @@ from src.AUTOFORECAST.constants import (
     PARAMS_FILE_PATH,
 )
 from src.AUTOFORECAST.pipeline.pipeline import forecasting_pipeline
-from src.AUTOFORECAST.utils.common import create_directories, save_yaml
+from src.AUTOFORECAST.utils.common import create_directories, load_json, save_yaml
 
 # set environment variables
 os.environ["AUTO_OPEN_DASHBOARD"] = "False"
@@ -88,6 +91,7 @@ if data is not None:
         help="Target column is the column you want to forecast.",
         placeholder="Select Target Column",
     )
+    df = df[[target_column]]
 
     # Forecast Horizon
     fh = st.number_input(
@@ -137,6 +141,8 @@ metrics = st.multiselect(
     help="Metrics are used to evaluate the performance of the model. You can select multiple metrics, we will evaluate on each one of what you selected.",
 )
 
+flag = False
+
 # Forecast Button
 if st.button("Forecast"):
     # check if the user provided data is valid
@@ -152,10 +158,49 @@ if st.button("Forecast"):
     }
     save_yaml(params, PARAMS_FILE_PATH)
     with st.spinner("Forecasting..."):
+
         # Run the forecasting pipeline
         os.system("zenml up")
         os.system("zenml init")
         run = forecasting_pipeline()
         logger.info("Zenml pipeline run :- \n\n{}".format(run))
-        # TODO: Display the results
         st.success("Forecasting completed!")
+        flag = True
+
+if flag:
+    # show the results
+    # load the configurations to get the output paths
+    config = ConfigurationManager()
+    forecasting_config = config.get_forecasting_config()
+    eval_config = config.get_model_evaluation_config()
+    train_config = config.get_preprocessing_and_training_config()
+
+    # best params and forecaster chosen
+    st.write("Best params and forecaster chosen:")
+    st.json(load_json(Path(train_config.best_params)))
+
+    # final trained model for download
+    with open(train_config.model, "rb") as f:
+        st.download_button(
+            label="Download the final model",
+            data=f,
+            file_name="model.joblib",
+            mime="application/octet-stream",
+        )
+
+    # evaluation results
+    st.write("Evaluation results:")
+    st.json(load_json(Path(eval_config.scores)))
+    st.image(
+        eval_config.forecast_vs_actual_plot,
+        caption="Forecast vs Actual Plot (for the test data)",
+    )
+
+    # forecasted values
+    st.write("Forecasted values:")
+    forecasted_values = pd.read_csv(forecasting_config.forecast_data)
+    st.dataframe(forecasted_values)
+    st.image(
+        forecasting_config.forecast_plot,
+        caption="Forecast Plot (based on given fh)",
+    )
