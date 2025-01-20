@@ -141,7 +141,9 @@ metrics = st.multiselect(
     help="Metrics are used to evaluate the performance of the model. You can select multiple metrics, we will evaluate on each one of what you selected.",
 )
 
-flag = False
+# Initialize session state for the flag
+if "flag" not in st.session_state:
+    st.session_state.flag = False
 
 # Forecast Button
 if st.button("Forecast"):
@@ -165,9 +167,9 @@ if st.button("Forecast"):
         run = forecasting_pipeline()
         logger.info("Zenml pipeline run :- \n\n{}".format(run))
         st.success("Forecasting completed!")
-        flag = True
+        st.session_state.flag = True
 
-if flag:
+if st.session_state.flag:
     # show the results
     # load the configurations to get the output paths
     config = ConfigurationManager()
@@ -178,15 +180,6 @@ if flag:
     # best params and forecaster chosen
     st.write("Best params and forecaster chosen:")
     st.json(load_json(Path(train_config.best_params)))
-
-    # final trained model for download
-    with open(train_config.model, "rb") as f:
-        st.download_button(
-            label="Download the final model",
-            data=f,
-            file_name="model.joblib",
-            mime="application/octet-stream",
-        )
 
     # evaluation results
     st.write("Evaluation results:")
@@ -204,3 +197,12 @@ if flag:
         forecasting_config.forecast_plot,
         caption="Forecast Plot (based on given fh)",
     )
+
+    # final trained model for download
+    with open(train_config.model, "rb") as f:
+        st.download_button(
+            label="Download the final model",
+            data=f,
+            file_name="model.joblib",
+            mime="application/octet-stream",
+        )
