@@ -8,7 +8,7 @@ STAGE_NAME = "PREPROCESSING AND MODEL TRAINING STAGE"
 
 
 @step(enable_cache=False)
-def preprocess_and_train_step() -> bool:
+def preprocess_and_train_step(success: bool) -> bool:
     """
     A ZenML step for preprocessing and training the model.
 
@@ -17,6 +17,9 @@ def preprocess_and_train_step() -> bool:
     """
 
     try:
+        if not success:
+            logger.error("DATA ANALYSIS STAGE FAILED. SKIPPING OTHER STAGES")
+            return False
         logger.info(f"{STAGE_NAME} STARTED")
         config_manager = ConfigurationManager()
         config = config_manager.get_preprocessing_and_training_config()

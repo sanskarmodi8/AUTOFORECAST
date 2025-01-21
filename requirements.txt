@@ -2,6 +2,8 @@
 sktime[all-extras]
 pandas
 numpy
+scipy
+statsmodels
 
 # visualization
 matplotlib

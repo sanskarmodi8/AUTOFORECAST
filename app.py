@@ -25,12 +25,13 @@ os.environ["AUTO_OPEN_DASHBOARD"] = "False"
 
 
 def process_data_upload(data):
-    """Load the uploaded dataset correctly by determining the delimiter."""
+    """Load the uploaded dataset correctly by determining the delimiter and perform basic data cleaning."""
     content = data.getvalue().decode("utf-8")
     delimiter = csv.Sniffer().sniff(content).delimiter
     df = pd.read_csv(data, sep=delimiter)
     df.columns = df.columns.str.lower()
     df.columns = df.columns.str.replace(" ", "")
+    df = df.drop_duplicates()
     return df
 
 

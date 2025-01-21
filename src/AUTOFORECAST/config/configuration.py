@@ -2,6 +2,7 @@ from pathlib import Path
 
 from AUTOFORECAST.constants import CONFIG_FILE_PATH, DATA_DIR, PARAMS_FILE_PATH
 from AUTOFORECAST.entity.config_entity import (
+    DataAnalysisConfig,
     ForecastingConfig,
     ModelEvaluationConfig,
     PreprocessingAndTrainingConfig,
@@ -14,6 +15,19 @@ class ConfigurationManager:
         # read the configurations file and parameters file
         self.params = read_yaml(PARAMS_FILE_PATH)
         self.config = read_yaml(CONFIG_FILE_PATH)
+
+    def get_data_analysis_config(self) -> DataAnalysisConfig:
+        """
+        Gets the configuration for data analysis.
+
+        Returns:
+            DataAnalysisConfig: The configuration for data analysis.
+        """
+        config = self.config.data_analysis
+        create_directories([Path(config.root_dir)])
+        return DataAnalysisConfig(
+            root_dir=config.root_dir, data_summary=config.data_summary
+        )
 
     def get_preprocessing_and_training_config(self) -> PreprocessingAndTrainingConfig:
         """
@@ -32,6 +46,7 @@ class ConfigurationManager:
         )
         return PreprocessingAndTrainingConfig(
             root_dir=config.root_dir,
+            data_summary=config.data_summary,
             model=config.model,
             test_data_dir=config.test_data_dir,
             chosen_transformers=self.params.chosen_transformers,
