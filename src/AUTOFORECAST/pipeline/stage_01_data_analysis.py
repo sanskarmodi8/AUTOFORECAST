@@ -23,7 +23,7 @@ def data_analysis_step() -> bool:
         config_manager = ConfigurationManager()
         config = config_manager.get_data_analysis_config()
         data_analysis = DataAnalysis(config)
-        data_analysis.run()
+        data_analysis.analyze()
         logger.info(f"{STAGE_NAME} COMPLETED")
         return True
     except Exception as e:

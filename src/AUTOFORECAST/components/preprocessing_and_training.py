@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from sktime.forecasting.arima import AutoARIMA
 from sktime.forecasting.compose import Permute, TransformedTargetForecaster
 from sktime.forecasting.fbprophet import Prophet
 from sktime.forecasting.model_selection import (
@@ -17,6 +18,7 @@ from sktime.performance_metrics.forecasting import MeanAbsolutePercentageError
 from sktime.transformations.compose import OptionalPassthrough
 from sktime.transformations.series.adapt import TabularToSeriesAdaptor
 from sktime.transformations.series.boxcox import LogTransformer
+from sktime.transformations.series.detrend import Deseasonalizer
 from sktime.transformations.series.exponent import ExponentTransformer
 
 from AUTOFORECAST import logger
@@ -129,6 +131,11 @@ class UnivariateWithoutExogData(PreprocessingAndTrainingStrategy):
         logger.info("Running univariate strategy")
 
         try:
+
+            # get sp and check for stationarity
+            sp = load_json(Path(config.data_summary)).seasonal_period
+            is_stationary = load_json(Path(config.data_summary)).is_stationary
+
             # Validate and prepare data
             logger.info("Preparing data")
             y = self._validate_and_prepare_data(y)
@@ -186,14 +193,16 @@ class UnivariateWithoutExogData(PreprocessingAndTrainingStrategy):
 
                     # Add transformers to steps
                     for transformer in config.chosen_transformers:
-                        step = self._create_transformer_step(transformer)
+                        step = self._create_transformer_step(transformer, sp)
                         if step:
                             steps.append(step)
                             # Update parameter grid with transformer parameters
                             param_grid.update(AVAIL_TRANSFORMERS_GRID[transformer])
 
                     # Add forecaster to steps
-                    forecaster_step = self._create_forecaster_step(model, freq)
+                    forecaster_step = self._create_forecaster_step(
+                        model, freq, sp, is_stationary
+                    )
                     if forecaster_step:
                         steps.append(forecaster_step)
                         # Update parameter grid with model parameters
@@ -255,6 +264,8 @@ class UnivariateWithoutExogData(PreprocessingAndTrainingStrategy):
             return ("exponenttransformer", OptionalPassthrough(ExponentTransformer()))
         elif transformer == "LogTransformer":
             return ("logtransformer", OptionalPassthrough(LogTransformer()))
+        elif transformer == "Deseasonalizer":
+            return ("deseasonalizer", Deseasonalizer(sp=sp))
         return None
 
     def _create_forecaster_step(self, model, freq):
@@ -263,6 +274,8 @@ class UnivariateWithoutExogData(PreprocessingAndTrainingStrategy):
             return ("forecaster", PolynomialTrendForecaster())
         elif model == "Prophet":
             return ("forecaster", Prophet(freq=freq))
+        elif model == "AutoARIMA":
+            return ("forecaster", AutoARIMA(sp=sp, stationary=is_stationary))
         return None
 
 
