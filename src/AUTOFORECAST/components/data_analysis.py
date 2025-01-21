@@ -10,6 +10,7 @@ from statsmodels.tsa.stattools import adfuller
 
 from AUTOFORECAST import logger
 from AUTOFORECAST.constants import DATA_DIR
+from AUTOFORECAST.entity.config_entity import DataAnalysisConfig
 from AUTOFORECAST.utils.common import save_json
 
 
@@ -47,11 +48,13 @@ class UnivariateAnalysisStrategy(AnalysisStrategy):
         acf_values = acf(y, len(y) - 1)
         peaks, _ = find_peaks(acf_values, distance=2)
         sp = peaks[0] if len(peaks) > 0 else None
-        summary["seasonal_period"] = sp
+        summary["seasonal_period"] = str(sp) if sp is not None else "1"
+        logger.info(f"Detected Seasonal Period : {sp}")
 
         # check for stationarity
         adf_test = adfuller(y.dropna())
-        summary["is_stationary"] = adf_test[1] < 0.05
+        summary["is_stationary"] = str(adf_test[1] < 0.05)
+        logger.info(f"Stationarity in Time Series : {adf_test[1] < 0.05}")
 
         # save the summary
         save_json(Path(config.data_summary), summary)

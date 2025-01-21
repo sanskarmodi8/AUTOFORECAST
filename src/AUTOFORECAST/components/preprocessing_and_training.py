@@ -24,7 +24,7 @@ from sktime.transformations.series.exponent import ExponentTransformer
 from AUTOFORECAST import logger
 from AUTOFORECAST.constants import AVAIL_MODELS_GRID, AVAIL_TRANSFORMERS_GRID, DATA_DIR
 from AUTOFORECAST.entity.config_entity import PreprocessingAndTrainingConfig
-from AUTOFORECAST.utils.common import save_bin, save_json
+from AUTOFORECAST.utils.common import load_json, save_bin, save_json
 
 warnings.filterwarnings("ignore")
 
@@ -133,8 +133,12 @@ class UnivariateWithoutExogData(PreprocessingAndTrainingStrategy):
         try:
 
             # get sp and check for stationarity
-            sp = load_json(Path(config.data_summary)).seasonal_period
-            is_stationary = load_json(Path(config.data_summary)).is_stationary
+            sp = int(load_json(Path(config.data_summary)).seasonal_period)
+            is_stationary = (
+                False
+                if load_json(Path(config.data_summary)).is_stationary == "False"
+                else True
+            )
 
             # Validate and prepare data
             logger.info("Preparing data")
@@ -258,17 +262,17 @@ class UnivariateWithoutExogData(PreprocessingAndTrainingStrategy):
             logger.error(f"Error in univariate strategy: {str(e)}")
             raise e
 
-    def _create_transformer_step(self, transformer):
+    def _create_transformer_step(self, transformer, sp):
         """Create a transformer step based on transformer type."""
         if transformer == "ExponentTransformer":
             return ("exponenttransformer", OptionalPassthrough(ExponentTransformer()))
         elif transformer == "LogTransformer":
             return ("logtransformer", OptionalPassthrough(LogTransformer()))
         elif transformer == "Deseasonalizer":
-            return ("deseasonalizer", Deseasonalizer(sp=sp))
+            return ("deseasonalizer", OptionalPassthrough(Deseasonalizer(sp=sp)))
         return None
 
-    def _create_forecaster_step(self, model, freq):
+    def _create_forecaster_step(self, model, freq, sp, is_stationary):
         """Create a forecaster step based on model type."""
         if model == "PolynomialTrendForecaster":
             return ("forecaster", PolynomialTrendForecaster())

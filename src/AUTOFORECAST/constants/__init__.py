@@ -24,10 +24,10 @@ AVAIL_MODELS_GRID = {
         "estimator__forecaster__degree": [1, 2, 3],
     },
     "AutoARIMA": {
-        "start_p": [1, 2, 3],
-        "start_q": [1, 2, 3],
-        "start_P": [1, 2, 3],
-        "start_Q": [1, 2, 3],
+        "start_p": [1, 2, 3, 4, 5],
+        "start_q": [1, 2, 3, 4, 5],
+        "start_P": [1, 2],
+        "start_Q": [1, 2],
     },
 }
 
@@ -41,7 +41,7 @@ AVAIL_TRANSFORMERS_GRID = {
         "estimator__exponenttransformer__passthrough": [True, False],
     },
     "Deseasonalizer": {
-        "estimator__deseasonalizer__pass_through": [True, False],
+        "estimator__deseasonalizer__passthrough": [True, False],
         "estimator__deseasonalizer__model": ["additive", "multiplicative"],
     },
 }

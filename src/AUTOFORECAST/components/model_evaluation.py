@@ -98,6 +98,7 @@ class UnivariateWithoutExogData(ModelEvaluationStrategy):
                 scores[metric] = medmae(y_test, y_pred)
 
         # save scores
+        logger.info(f"Evaluated scores : {scores}")
         save_json(Path(config.scores), scores)
 
 
