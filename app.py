@@ -129,15 +129,11 @@ models = st.multiselect(
     placeholder="Select Model(s)",
     help="Models are used to forecast the target variable. You can select multiple models, we will choose the best performing one.",
 )
+
 if len(models) > 1:
-    if "AutoARIMA" in models:
-        st.warning(
-            "The more models you select, the more time it will take to forecast, or the app may even crash if the memory exceeds. AutoARIMA model itself takes a lot of time to forecast, so please be patient."
-        )
-    else:
-        st.warning(
-            "The more models you select, the more time it will take to forecast, or the app may even crash if the memory exceeds."
-        )
+    st.warning(
+        "The more models you select, the more time it will take to forecast, or the app may even crash if the memory exceeds."
+    )
 
 # Select Metric(s)
 metrics = st.multiselect(
@@ -165,7 +161,9 @@ if st.button("Forecast"):
         "fh": fh,
     }
     save_yaml(params, PARAMS_FILE_PATH)
-    with st.spinner("Hang tight! Forecasting might take a while. Perfect time to grab a coffee!"):
+    with st.spinner(
+        "Hang tight! Forecasting might take a while. Perfect time to grab a coffee!"
+    ):
 
         # Run the forecasting pipeline
         os.system("zenml up")

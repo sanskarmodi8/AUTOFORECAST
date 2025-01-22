@@ -1,8 +1,22 @@
 from pathlib import Path
 
 DATA_DIR = Path("artifacts/data")
-AVAIL_TRANSFORMERS = ["LogTransformer", "ExponentTransformer", "Deseasonalizer"]
-AVAIL_MODELS = ["Prophet", "PolynomialTrendForecaster", "AutoARIMA", "NaiveForecaster", "ExponentialSmoothing"]
+AVAIL_TRANSFORMERS = [
+    "LogTransformer",
+    "ExponentTransformer",
+    "Deseasonalizer",
+]
+AVAIL_MODELS = [
+    "Prophet",
+    "PolynomialTrendForecaster",
+    "AutoARIMA",
+    "ARIMA",
+    "NaiveForecaster",
+    "ExponentialSmoothing",
+    "ThetaForecaster",
+    "AutoETS",
+    "STLForecaster",
+]
 AVAIL_METRICS = [
     "Mean Absolute Error",
     "Root Mean Squared Error",
@@ -36,6 +50,19 @@ AVAIL_MODELS_GRID = {
         "estimator__forecaster__trend": ["add", "mul"],
         "estimator__forecaster__seasonal": ["add", "mul"],
         "estimator__forecaster__use_boxcox": [True, False],
+    },
+    "ThetaForecaster": {
+        "estimator__forecaster__deseasonalize": [True, False],
+    },
+    "AutoETS": {
+        "estimator__forecaster__auto": [True],
+    },
+    "STLForecaster": {
+        "estimator__forecaster__seasonal": [5, 7, 9],
+    },
+    "ARIMA": {
+        "estimator__forecaster__enforce_stationarity": [True, False],
+        "estimator__forecaster__enforce_invertibility": [True, False],
     },
 }
 

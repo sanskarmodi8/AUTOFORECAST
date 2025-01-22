@@ -5,17 +5,19 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from sktime.forecasting.naive import NaiveForecaster
-from sktime.forecasting.exp_smoothing import ExponentialSmoothing
-from sktime.forecasting.arima import AutoARIMA
+from sktime.forecasting.arima import ARIMA, AutoARIMA
 from sktime.forecasting.compose import Permute, TransformedTargetForecaster
+from sktime.forecasting.ets import AutoETS
+from sktime.forecasting.exp_smoothing import ExponentialSmoothing
 from sktime.forecasting.fbprophet import Prophet
 from sktime.forecasting.model_selection import (
     ExpandingWindowSplitter,
     ForecastingGridSearchCV,
     temporal_train_test_split,
 )
-from sktime.forecasting.trend import PolynomialTrendForecaster
+from sktime.forecasting.naive import NaiveForecaster
+from sktime.forecasting.theta import ThetaForecaster
+from sktime.forecasting.trend import PolynomialTrendForecaster, STLForecaster
 from sktime.performance_metrics.forecasting import MeanAbsolutePercentageError
 from sktime.transformations.compose import OptionalPassthrough
 from sktime.transformations.series.adapt import TabularToSeriesAdaptor
@@ -293,6 +295,14 @@ class UnivariateWithoutExogData(PreprocessingAndTrainingStrategy):
             return ("forecaster", NaiveForecaster(sp=sp))
         elif model == "ExponentialSmoothing":
             return ("forecaster", ExponentialSmoothing(sp=sp))
+        elif model == "ThetaForecaster":
+            return ("forecaster", ThetaForecaster(sp=sp))
+        elif model == "AutoETS":
+            return ("forecaster", AutoETS(sp=sp))
+        elif model == "STLForecaster":
+            return ("forecaster", STLForecaster(sp=sp))
+        elif model == "ARIMA":
+            return ("forecaster", ARIMA())
         return None
 
 
