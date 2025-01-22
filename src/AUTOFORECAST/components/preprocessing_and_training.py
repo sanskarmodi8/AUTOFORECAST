@@ -5,6 +5,8 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from sktime.forecasting.naive import NaiveForecaster
+from sktime.forecasting.exp_smoothing import ExponentialSmoothing
 from sktime.forecasting.arima import AutoARIMA
 from sktime.forecasting.compose import Permute, TransformedTargetForecaster
 from sktime.forecasting.fbprophet import Prophet
@@ -287,6 +289,10 @@ class UnivariateWithoutExogData(PreprocessingAndTrainingStrategy):
             return ("forecaster", Prophet(freq=freq))
         elif model == "AutoARIMA":
             return ("forecaster", AutoARIMA(sp=sp, stationary=is_stationary))
+        elif model == "NaiveForecaster":
+            return ("forecaster", NaiveForecaster(sp=sp))
+        elif model == "ExponentialSmoothing":
+            return ("forecaster", ExponentialSmoothing(sp=sp))
         return None
 
 

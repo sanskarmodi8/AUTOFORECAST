@@ -2,7 +2,7 @@ from pathlib import Path
 
 DATA_DIR = Path("artifacts/data")
 AVAIL_TRANSFORMERS = ["LogTransformer", "ExponentTransformer", "Deseasonalizer"]
-AVAIL_MODELS = ["Prophet", "PolynomialTrendForecaster", "AutoARIMA"]
+AVAIL_MODELS = ["Prophet", "PolynomialTrendForecaster", "AutoARIMA", "NaiveForecaster", "ExponentialSmoothing"]
 AVAIL_METRICS = [
     "Mean Absolute Error",
     "Root Mean Squared Error",
@@ -17,6 +17,9 @@ CONFIG_FILE_PATH = Path("config/config.yaml")
 PARAMS_FILE_PATH = Path("params.yaml")
 
 AVAIL_MODELS_GRID = {
+    "NaiveForecaster": {
+        "estimator__forecaster__strategy": ["mean", "last", "drift"],
+    },
     "Prophet": {
         "estimator__forecaster__seasonality_mode": ["additive", "multiplicative"],
     },
@@ -28,6 +31,11 @@ AVAIL_MODELS_GRID = {
         "start_q": [3, 5],
         "start_P": [1, 2],
         "start_Q": [1, 2],
+    },
+    "ExponentialSmoothing": {
+        "estimator__forecaster__trend": ["add", "mul"],
+        "estimator__forecaster__seasonal": ["add", "mul"],
+        "estimator__forecaster__use_boxcox": [True, False],
     },
 }
 
