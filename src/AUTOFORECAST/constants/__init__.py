@@ -24,8 +24,8 @@ AVAIL_MODELS_GRID = {
         "estimator__forecaster__degree": [1, 2, 3],
     },
     "AutoARIMA": {
-        "start_p": [1, 2, 3, 4, 5],
-        "start_q": [1, 2, 3, 4, 5],
+        "start_p": [3, 5],
+        "start_q": [3, 5],
         "start_P": [1, 2],
         "start_Q": [1, 2],
     },

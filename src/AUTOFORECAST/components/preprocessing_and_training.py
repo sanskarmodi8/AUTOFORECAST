@@ -151,6 +151,13 @@ class UnivariateWithoutExogData(PreprocessingAndTrainingStrategy):
             # Create final index
             full_idx = pd.date_range(start=y.index.min(), end=y.index.max(), freq=freq)
             y = y.reindex(full_idx)
+
+            # if freq inferred was None, reinfer after reindexing
+            if freq is None:
+                freq = self._get_frequency(y)[1]
+                logger.info(f"Reinferred frequency: {freq}")
+
+            # Convert to period index
             y.index = pd.PeriodIndex(y.index, freq=freq)
 
             # handle missing values
