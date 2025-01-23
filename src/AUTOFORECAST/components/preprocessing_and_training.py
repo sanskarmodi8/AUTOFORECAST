@@ -5,9 +5,8 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from sktime.forecasting.arima import ARIMA, AutoARIMA
+from sktime.forecasting.arima import AutoARIMA
 from sktime.forecasting.compose import Permute, TransformedTargetForecaster
-from sktime.forecasting.ets import AutoETS
 from sktime.forecasting.exp_smoothing import ExponentialSmoothing
 from sktime.forecasting.fbprophet import Prophet
 from sktime.forecasting.model_selection import (
@@ -21,8 +20,8 @@ from sktime.forecasting.trend import PolynomialTrendForecaster, STLForecaster
 from sktime.performance_metrics.forecasting import MeanAbsolutePercentageError
 from sktime.transformations.compose import OptionalPassthrough
 from sktime.transformations.series.adapt import TabularToSeriesAdaptor
-from sktime.transformations.series.boxcox import LogTransformer
-from sktime.transformations.series.detrend import Deseasonalizer
+from sktime.transformations.series.boxcox import BoxCoxTransformer, LogTransformer
+from sktime.transformations.series.detrend import Deseasonalizer, Detrender
 from sktime.transformations.series.exponent import ExponentTransformer
 
 from AUTOFORECAST import logger
@@ -189,6 +188,7 @@ class UnivariateWithoutExogData(PreprocessingAndTrainingStrategy):
             y_train.to_csv(train_data_path)
             test_data_path = Path(config.test_data_dir) / Path("y.csv")
             y_test.to_csv(test_data_path)
+
             # Set up cross-validation
             fh = np.arange(1, len(y_test) + 1)
             initial_window = int(len(y_train) * 0.5)
@@ -214,6 +214,53 @@ class UnivariateWithoutExogData(PreprocessingAndTrainingStrategy):
                             # Update parameter grid with transformer parameters
                             param_grid.update(AVAIL_TRANSFORMERS_GRID[transformer])
 
+                            # cautiously set detrender model to avoid negative values
+                            if transformer == "Detrender":
+                                y_transformed_add = Detrender(
+                                    model="additive"
+                                ).fit_transform(y_train)
+                                y_transformed_mul = Detrender(
+                                    model="multiplicative"
+                                ).fit_transform(y_train)
+
+                                if (y_transformed_add < 0).any().any() and not (
+                                    y_transformed_mul < 0
+                                ).any().any():
+                                    param_grid.update(
+                                        {
+                                            "estimator__detrender__model": [
+                                                "multiplicative"
+                                            ]
+                                        }
+                                    )
+                                elif (y_transformed_mul < 0).any().any() and not (
+                                    y_transformed_add < 0
+                                ).any().any():
+                                    param_grid.update(
+                                        {"estimator__detrender__model": ["additive"]}
+                                    )
+                                elif (y_transformed_add < 0).any().any() and (
+                                    y_transformed_mul < 0
+                                ).any().any():
+                                    # remove detrender from steps and param_grid
+                                    steps = [
+                                        step for step in steps if step[0] != "detrender"
+                                    ]
+                                    param_grid = {
+                                        key: value
+                                        for key, value in param_grid.items()
+                                        if "detrender" not in key
+                                    }
+                                else:
+                                    param_grid.update(
+                                        {
+                                            "estimator__detrender__model": [
+                                                "additive",
+                                                "multiplicative",
+                                            ]
+                                        }
+                                    )
+
                     # Add forecaster to steps
                     forecaster_step = self._create_forecaster_step(
                         model, freq, sp, is_stationary
@@ -222,6 +269,9 @@ class UnivariateWithoutExogData(PreprocessingAndTrainingStrategy):
                         steps.append(forecaster_step)
                         # Update parameter grid with model parameters
                         param_grid.update(AVAIL_MODELS_GRID[model])
+
+                    logger.info(f"Steps: {steps}")
+                    logger.info(f"Parameter grid: {param_grid}")
 
                     # Generate permutations of steps with forecaster as last step each time
 
@@ -281,6 +331,10 @@ class UnivariateWithoutExogData(PreprocessingAndTrainingStrategy):
             return ("logtransformer", OptionalPassthrough(LogTransformer()))
         elif transformer == "Deseasonalizer":
             return ("deseasonalizer", OptionalPassthrough(Deseasonalizer(sp=sp)))
+        elif transformer == "BoxCoxTransformer":
+            return ("boxcoxtransformer", OptionalPassthrough(BoxCoxTransformer()))
+        elif transformer == "Detrender":
+            return ("detrender", OptionalPassthrough(Detrender()))
         return None
 
     def _create_forecaster_step(self, model, freq, sp, is_stationary):
@@ -291,18 +345,16 @@ class UnivariateWithoutExogData(PreprocessingAndTrainingStrategy):
             return ("forecaster", Prophet(freq=freq))
         elif model == "AutoARIMA":
             return ("forecaster", AutoARIMA(sp=sp, stationary=is_stationary))
-        elif model == "NaiveForecaster":
-            return ("forecaster", NaiveForecaster(sp=sp))
         elif model == "ExponentialSmoothing":
+            if sp == 1:
+                return ("forecaster", ExponentialSmoothing())
             return ("forecaster", ExponentialSmoothing(sp=sp))
         elif model == "ThetaForecaster":
             return ("forecaster", ThetaForecaster(sp=sp))
-        elif model == "AutoETS":
-            return ("forecaster", AutoETS(sp=sp))
         elif model == "STLForecaster":
+            if sp == 1:
+                return ("forecaster", STLForecaster())
             return ("forecaster", STLForecaster(sp=sp))
-        elif model == "ARIMA":
-            return ("forecaster", ARIMA())
         return None
 
 

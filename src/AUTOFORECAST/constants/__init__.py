@@ -5,16 +5,15 @@ AVAIL_TRANSFORMERS = [
     "LogTransformer",
     "ExponentTransformer",
     "Deseasonalizer",
+    "BoxCoxTransformer",
+    "Detrender",
 ]
 AVAIL_MODELS = [
     "Prophet",
     "PolynomialTrendForecaster",
     "AutoARIMA",
-    "ARIMA",
-    "NaiveForecaster",
     "ExponentialSmoothing",
     "ThetaForecaster",
-    "AutoETS",
     "STLForecaster",
 ]
 AVAIL_METRICS = [
@@ -24,16 +23,11 @@ AVAIL_METRICS = [
     "Symmetric Mean Squared Percentage Error",
     "Median Squared Error",
     "Median Absolute Error",
-    "Median Absolute Percentage Error",
-    "Median Squared Percentage Error",
 ]
 CONFIG_FILE_PATH = Path("config/config.yaml")
 PARAMS_FILE_PATH = Path("params.yaml")
 
 AVAIL_MODELS_GRID = {
-    "NaiveForecaster": {
-        "estimator__forecaster__strategy": ["mean", "last", "drift"],
-    },
     "Prophet": {
         "estimator__forecaster__seasonality_mode": ["additive", "multiplicative"],
     },
@@ -49,24 +43,20 @@ AVAIL_MODELS_GRID = {
     "ExponentialSmoothing": {
         "estimator__forecaster__trend": ["add", "mul"],
         "estimator__forecaster__seasonal": ["add", "mul"],
-        "estimator__forecaster__use_boxcox": [True, False],
     },
     "ThetaForecaster": {
         "estimator__forecaster__deseasonalize": [True, False],
     },
-    "AutoETS": {
-        "estimator__forecaster__auto": [True],
-    },
     "STLForecaster": {
         "estimator__forecaster__seasonal": [5, 7, 9],
-    },
-    "ARIMA": {
-        "estimator__forecaster__enforce_stationarity": [True, False],
-        "estimator__forecaster__enforce_invertibility": [True, False],
     },
 }
 
 AVAIL_TRANSFORMERS_GRID = {
+    "BoxCoxTransformer": {
+        "estimator__boxcoxtransformer__passthrough": [True, False],
+        "estimator__boxcoxtransformer__method": ["pearsonr", "mle"],
+    },
     "LogTransformer": {
         "estimator__logtransformer__passthrough": [True, False],
         "estimator__logtransformer__offset": [0, 0.1],
@@ -78,5 +68,8 @@ AVAIL_TRANSFORMERS_GRID = {
     "Deseasonalizer": {
         "estimator__deseasonalizer__passthrough": [True, False],
         "estimator__deseasonalizer__model": ["additive", "multiplicative"],
+    },
+    "Detrender": {
+        "estimator__detrender__passthrough": [True, False],
     },
 }

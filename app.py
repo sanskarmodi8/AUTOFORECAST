@@ -77,6 +77,7 @@ def save_final_dataset(df, target_column):
 
 # Streamlit Interface
 st.title("AUTOFORECAST")
+st.write(" ")
 
 # File Upload
 data = st.file_uploader("Upload your dataset", type=["csv", "txt"])
@@ -110,6 +111,7 @@ if data is not None:
     # Save data to CSV for future processing
     save_final_dataset(df, target_column)
 
+st.write(" ")
 # Select Transformer(s)
 transformations = st.multiselect(
     "Select Transformer(s)",
@@ -147,6 +149,7 @@ metrics = st.multiselect(
 if "flag" not in st.session_state:
     st.session_state.flag = False
 
+st.write(" ")
 # Forecast Button
 if st.button("Forecast"):
     # check if the user provided data is valid
@@ -164,14 +167,24 @@ if st.button("Forecast"):
     with st.spinner(
         "Hang tight! Forecasting might take a while. Perfect time to grab a coffee!"
     ):
+        try:
+            # Run the forecasting pipeline
+            os.system("zenml up")
+            os.system("zenml init")
+            run = forecasting_pipeline()
+            logger.info("Zenml pipeline run :- \n\n{}".format(run))
+            st.success("Forecasting completed!")
+            st.session_state.flag = True
+        except Exception as e:
+            # Report Issue
+            st.markdown("---")
+            st.markdown(
+                "Facing an issue or have a feature request? "
+                "[Open an issue](https://github.com/sanskarmodi8/AUTOFORECAST/issues) "
+                "on our GitHub repository."
+            )
+            raise e
 
-        # Run the forecasting pipeline
-        os.system("zenml up")
-        os.system("zenml init")
-        run = forecasting_pipeline()
-        logger.info("Zenml pipeline run :- \n\n{}".format(run))
-        st.success("Forecasting completed!")
-        st.session_state.flag = True
 
 if st.session_state.flag:
     # show the results
@@ -210,3 +223,11 @@ if st.session_state.flag:
             file_name="model.joblib",
             mime="application/octet-stream",
         )
+
+# Report Issue
+st.markdown("---")
+st.markdown(
+    "Facing an issue or have a feature request? "
+    "[Open an issue](https://github.com/sanskarmodi8/AUTOFORECAST/issues) "
+    "on our GitHub repository."
+)

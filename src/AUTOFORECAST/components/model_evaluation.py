@@ -89,14 +89,6 @@ class UnivariateWithoutExogData(ModelEvaluationStrategy):
                 medse = MedianSquaredError()
                 scores[metric] = medse(y_test, y_pred)
 
-            elif metric == "Median Squared Percentage Error":
-                medmse = MedianSquaredPercentageError()
-                scores[metric] = medmse(y_test, y_pred)
-
-            elif metric == "Median Absolute Percentage Error":
-                medmae = MedianAbsolutePercentageError()
-                scores[metric] = medmae(y_test, y_pred)
-
         # save scores
         logger.info(f"Evaluated scores : {scores}")
         save_json(Path(config.scores), scores)
