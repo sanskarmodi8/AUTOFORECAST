@@ -3,10 +3,12 @@ import os
 from pathlib import Path
 
 import joblib
+import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
 import yaml
 import zenml
+from sktime.utils.plotting import plot_series
 
 from src.AUTOFORECAST import logger
 from src.AUTOFORECAST.config.configuration import ConfigurationManager
@@ -24,7 +26,6 @@ from src.AUTOFORECAST.utils.common import create_directories, load_json, save_ya
 os.environ["AUTO_OPEN_DASHBOARD"] = "False"
 
 # Initialize session state for the flag and is_running
-
 if "flag" not in st.session_state:
     st.session_state.flag = False
 
@@ -74,7 +75,7 @@ def set_datetime_index(df):
 
 
 def save_final_dataset(df, target_column):
-    """Save the CSV data in appropiate manner."""
+    """Save the CSV data in appropriate manner."""
     y = df[target_column]
     create_directories([DATA_DIR])
     y.to_csv(f"{DATA_DIR}/y.csv")
@@ -100,23 +101,31 @@ if data is not None:
     )
     df = df[[target_column]]
 
-    # Forecast Horizon
-    fh = st.number_input(
-        "Select forecast horizon (fh):",
-        min_value=1,
-        help="Forecast horizon is the number of time steps to forecast into the future.",
-        value=7,
-    )
-    st.write("")
+    st.markdown("---")
 
     # Display Dataset
-    st.write("Dataset preview:")
-    st.dataframe(df)
+    st.write("Data preview:")
+    st.dataframe(df.head())
+
+    # Plot Target Column
+    plot_series(df[target_column], labels=[target_column])
+    plt.savefig("target_column_plot.png")
+    st.image("target_column_plot.png")
+    st.write(" ")
+
+    st.markdown("---")
 
     # Save data to CSV for future processing
     save_final_dataset(df, target_column)
 
-st.write(" ")
+# Forecast Horizon
+fh = st.number_input(
+    "Select forecast horizon (fh):",
+    min_value=1,
+    help="Forecast horizon is the number of time steps to forecast into the future.",
+    value=7,
+)
+
 # Select Transformer(s)
 transformations = st.multiselect(
     "Select Transformer(s)",
@@ -126,7 +135,7 @@ transformations = st.multiselect(
 )
 if len(transformations) > 1:
     st.info(
-        "⚠️\nThe more transformers you select, the more time it will take to forecast, or the app may even crash if the memory exceeds."
+        "⚠️\nThe more transformers you select, the more time it will take to forecast."
     )
 
 # Select Model(s)
@@ -138,9 +147,7 @@ models = st.multiselect(
 )
 
 if len(models) > 1:
-    st.info(
-        "⚠️\nThe more models you select, the more time it will take to forecast, or the app may even crash if the memory exceeds."
-    )
+    st.info("⚠️\nThe more models you select, the more time it will take to forecast.")
 
 # Select Metric(s)
 metrics = st.multiselect(
@@ -187,7 +194,6 @@ if st.button("Forecast"):
                 "on our GitHub repository."
             )
             raise e
-
 
 if st.session_state.flag:
     # show the results
