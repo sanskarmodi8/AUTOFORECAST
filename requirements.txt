@@ -1,5 +1,5 @@
 # core dependencies
-sktime[all-extras]
+sktime[all_extras]
 prophet
 pandas
 numpy
