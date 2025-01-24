@@ -23,6 +23,11 @@ from src.AUTOFORECAST.utils.common import create_directories, load_json, save_ya
 # set environment variables
 os.environ["AUTO_OPEN_DASHBOARD"] = "False"
 
+# Initialize session state for the flag and is_running
+
+if "flag" not in st.session_state:
+    st.session_state.flag = False
+
 
 def process_data_upload(data):
     """Load the uploaded dataset correctly by determining the delimiter and perform basic data cleaning."""
@@ -120,8 +125,8 @@ transformations = st.multiselect(
     help="Transformers are used to preprocess the data before forecasting. You can select none of the transformer or multiple transformers. We will take care of the best possible ordering, if you selected more than one.",
 )
 if len(transformations) > 1:
-    st.warning(
-        "The more transformers you select, the more time it will take to forecast, or the app may even crash if the memory exceeds."
+    st.info(
+        "⚠️\nThe more transformers you select, the more time it will take to forecast, or the app may even crash if the memory exceeds."
     )
 
 # Select Model(s)
@@ -133,8 +138,8 @@ models = st.multiselect(
 )
 
 if len(models) > 1:
-    st.warning(
-        "The more models you select, the more time it will take to forecast, or the app may even crash if the memory exceeds."
+    st.info(
+        "⚠️\nThe more models you select, the more time it will take to forecast, or the app may even crash if the memory exceeds."
     )
 
 # Select Metric(s)
@@ -145,13 +150,11 @@ metrics = st.multiselect(
     help="Metrics are used to evaluate the performance of the model. You can select multiple metrics, we will evaluate on each one of what you selected.",
 )
 
-# Initialize session state for the flag
-if "flag" not in st.session_state:
-    st.session_state.flag = False
-
 st.write(" ")
 # Forecast Button
 if st.button("Forecast"):
+    st.session_state.is_running = True
+
     # check if the user provided data is valid
     if len(models) == 0 or len(metrics) == 0:
         st.error("Please select at least one model, and metric.")
@@ -165,7 +168,7 @@ if st.button("Forecast"):
     }
     save_yaml(params, PARAMS_FILE_PATH)
     with st.spinner(
-        "Hang tight! Forecasting might take a while. Perfect time to grab a coffee!"
+        "Hang tight! Forecasting might take a while. Perfect time to grab a ☕"
     ):
         try:
             # Run the forecasting pipeline

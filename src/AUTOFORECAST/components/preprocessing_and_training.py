@@ -1,5 +1,4 @@
 import itertools
-import warnings
 from abc import ABC, abstractmethod
 from pathlib import Path
 
@@ -18,18 +17,17 @@ from sktime.forecasting.naive import NaiveForecaster
 from sktime.forecasting.theta import ThetaForecaster
 from sktime.forecasting.trend import PolynomialTrendForecaster, STLForecaster
 from sktime.performance_metrics.forecasting import MeanAbsolutePercentageError
-from sktime.transformations.compose import OptionalPassthrough
+from sktime.transformations.compose import OptionalPassthrough, TransformerPipeline
 from sktime.transformations.series.adapt import TabularToSeriesAdaptor
 from sktime.transformations.series.boxcox import BoxCoxTransformer, LogTransformer
 from sktime.transformations.series.detrend import Deseasonalizer, Detrender
 from sktime.transformations.series.exponent import ExponentTransformer
+from sktime.transformations.series.impute import Imputer
 
 from AUTOFORECAST import logger
 from AUTOFORECAST.constants import AVAIL_MODELS_GRID, AVAIL_TRANSFORMERS_GRID, DATA_DIR
 from AUTOFORECAST.entity.config_entity import PreprocessingAndTrainingConfig
 from AUTOFORECAST.utils.common import load_json, save_bin, save_json
-
-warnings.filterwarnings("ignore")
 
 
 class PreprocessingAndTrainingStrategy(ABC):
@@ -261,6 +259,19 @@ class UnivariateWithoutExogData(PreprocessingAndTrainingStrategy):
                                         }
                                     )
 
+                    # Update parameter grid with imputer parameters
+                    param_grid.update(
+                        {
+                            f"estimator__{step[0]}__imputer__method": [
+                                "mean",
+                                "drift",
+                                "nearest",
+                            ]
+                            for step in steps
+                            if step[0] != "forecaster"
+                        }
+                    )
+
                     # Add forecaster to steps
                     forecaster_step = self._create_forecaster_step(
                         model, freq, sp, is_stationary
@@ -325,16 +336,30 @@ class UnivariateWithoutExogData(PreprocessingAndTrainingStrategy):
 
     def _create_transformer_step(self, transformer, sp):
         """Create a transformer step based on transformer type."""
+        step = None
+        imputer = Imputer()
         if transformer == "ExponentTransformer":
-            return ("exponenttransformer", OptionalPassthrough(ExponentTransformer()))
+            step = ("exponenttransformer", OptionalPassthrough(ExponentTransformer()))
         elif transformer == "LogTransformer":
-            return ("logtransformer", OptionalPassthrough(LogTransformer()))
+            step = ("logtransformer", OptionalPassthrough(LogTransformer()))
         elif transformer == "Deseasonalizer":
-            return ("deseasonalizer", OptionalPassthrough(Deseasonalizer(sp=sp)))
+            step = ("deseasonalizer", OptionalPassthrough(Deseasonalizer(sp=sp)))
         elif transformer == "BoxCoxTransformer":
-            return ("boxcoxtransformer", OptionalPassthrough(BoxCoxTransformer()))
+            step = ("boxcoxtransformer", OptionalPassthrough(BoxCoxTransformer()))
+
         elif transformer == "Detrender":
-            return ("detrender", OptionalPassthrough(Detrender()))
+            step = ("detrender", OptionalPassthrough(Detrender()))
+
+        if step:
+            return (
+                step[0],
+                TransformerPipeline(
+                    steps=[
+                        (transformer, step[1]),
+                        ("imputer", imputer),
+                    ]
+                ),
+            )
         return None
 
     def _create_forecaster_step(self, model, freq, sp, is_stationary):

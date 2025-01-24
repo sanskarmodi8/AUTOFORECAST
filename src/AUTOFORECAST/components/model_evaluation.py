@@ -8,16 +8,9 @@ from sktime.forecasting.model_evaluation import evaluate
 from sktime.performance_metrics.forecasting import (
     MeanAbsoluteError,
     MeanAbsolutePercentageError,
-    MeanAbsoluteScaledError,
     MeanSquaredError,
-    MeanSquaredPercentageError,
-    MeanSquaredScaledError,
     MedianAbsoluteError,
-    MedianAbsolutePercentageError,
-    MedianAbsoluteScaledError,
     MedianSquaredError,
-    MedianSquaredPercentageError,
-    MedianSquaredScaledError,
 )
 from sktime.utils.plotting import plot_series
 
@@ -76,10 +69,6 @@ class UnivariateWithoutExogData(ModelEvaluationStrategy):
             elif metric == "Symmetric Mean Absolute Percentage Error":
                 smape = MeanAbsolutePercentageError(symmetric=True)
                 scores[metric] = smape(y_test, y_pred)
-
-            elif metric == "Symmetric Mean Squared Percentage Error":
-                smse = MeanSquaredPercentageError(symmetric=True)
-                scores[metric] = smse(y_test, y_pred)
 
             elif metric == "Median Absolute Error":
                 medae = MedianAbsoluteError()

@@ -10,7 +10,6 @@ AVAIL_TRANSFORMERS = [
 ]
 AVAIL_MODELS = [
     "Prophet",
-    "PolynomialTrendForecaster",
     "AutoARIMA",
     "ExponentialSmoothing",
     "ThetaForecaster",
@@ -19,10 +18,9 @@ AVAIL_MODELS = [
 AVAIL_METRICS = [
     "Mean Absolute Error",
     "Root Mean Squared Error",
-    "Symmetric Mean Absolute Percentage Error",
-    "Symmetric Mean Squared Percentage Error",
     "Median Squared Error",
     "Median Absolute Error",
+    "Symmetric Mean Absolute Percentage Error",
 ]
 CONFIG_FILE_PATH = Path("config/config.yaml")
 PARAMS_FILE_PATH = Path("params.yaml")
@@ -55,7 +53,6 @@ AVAIL_MODELS_GRID = {
 AVAIL_TRANSFORMERS_GRID = {
     "BoxCoxTransformer": {
         "estimator__boxcoxtransformer__passthrough": [True, False],
-        "estimator__boxcoxtransformer__method": ["pearsonr", "mle"],
     },
     "LogTransformer": {
         "estimator__logtransformer__passthrough": [True, False],
