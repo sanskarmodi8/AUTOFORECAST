@@ -8,4 +8,4 @@ RUN apt update -y && apt install -y gcc build-essential
 
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
-CMD ["streamlit", "run", "app.py"]
+CMD ["streamlit", "run", "app.py", "--server.port=80", "--server.address=0.0.0.0"]
