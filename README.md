@@ -6,7 +6,7 @@ Predicting the future has never been easier! **AUTOFORECAST** is an automated ti
 With support for various estimators, transformers, and metrics from `sktime`, AUTOFORECAST offers flexibility and precision in time series forecasting.  
 
 
-##### 🚀 [Try AUTOFORECAST](autoforecast-bacfbzfudkg5fhbd.centralindia-01.azurewebsites.net)
+##### 🚀 [Try AUTOFORECAST](https://autoforecast-bacfbzfudkg5fhbd.centralindia-01.azurewebsites.net/)
  
 ![img](https://imgs.search.brave.com/5UIXoDyhg78HrrBIsJIqOC7RdTIc_4aLNRdWfSWc8_E/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly90My5m/dGNkbi5uZXQvanBn/LzA5LzY4LzE0LzE4/LzM2MF9GXzk2ODE0/MTg4OV92Y2Z6QkxT/c1NLSDdyS2FkcjhL/aFBQbGxJYlZBWmxa/Yi5qcGc)
 
