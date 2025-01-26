@@ -4,6 +4,6 @@ WORKDIR /app
 
 COPY . /app
 
-RUN apt update -y && apt install -y && pip install -r requirements.txt -y 
+RUN apt update -y && apt install -y && pip install -r requirements.txt 
 
 CMD ["streamlit", "run", "app.py"]
