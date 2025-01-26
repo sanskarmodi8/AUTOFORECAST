@@ -221,7 +221,9 @@ if st.session_state.flag:
 
         # forecasted values
         st.write("Forecasted values:")
-        forecasted_values = pd.read_csv(BASE_DIR / Path(forecasting_config.forecast_data))
+        forecasted_values = pd.read_csv(
+            BASE_DIR / Path(forecasting_config.forecast_data)
+        )
         st.dataframe(forecasted_values)
         st.image(
             BASE_DIR / Path(forecasting_config.forecast_plot),

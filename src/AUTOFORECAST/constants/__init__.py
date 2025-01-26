@@ -1,6 +1,6 @@
 from pathlib import Path
 
-DATA_DIR = Path("artifacts/data")
+DATA_DIR = Path("/tmp/artifacts/data")
 AVAIL_TRANSFORMERS = [
     "LogTransformer",
     "ExponentTransformer",
