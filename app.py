@@ -22,6 +22,9 @@ from src.AUTOFORECAST.constants import (
 from src.AUTOFORECAST.pipeline.pipeline import forecasting_pipeline
 from src.AUTOFORECAST.utils.common import create_directories, load_json, save_yaml
 
+# Define base directory
+BASE_DIR = Path(__file__).resolve().parent
+
 # set environment variables
 os.environ["AUTO_OPEN_DASHBOARD"] = "False"
 
@@ -77,8 +80,8 @@ def set_datetime_index(df):
 def save_final_dataset(df, target_column):
     """Save the CSV data in appropriate manner."""
     y = df[target_column]
-    create_directories([DATA_DIR])
-    y.to_csv(f"{DATA_DIR}/y.csv")
+    create_directories([BASE_DIR / DATA_DIR])
+    y.to_csv(f"{BASE_DIR / DATA_DIR}/y.csv")
 
 
 # Streamlit Interface
@@ -196,42 +199,52 @@ if st.button("Forecast"):
             raise e
 
 if st.session_state.flag:
-    # show the results
-    # load the configurations to get the output paths
-    config = ConfigurationManager()
-    forecasting_config = config.get_forecasting_config()
-    eval_config = config.get_model_evaluation_config()
-    train_config = config.get_preprocessing_and_training_config()
+    try:
+        # show the results
+        # load the configurations to get the output paths
+        config = ConfigurationManager()
+        forecasting_config = config.get_forecasting_config()
+        eval_config = config.get_model_evaluation_config()
+        train_config = config.get_preprocessing_and_training_config()
 
-    # best params and forecaster chosen
-    st.write("Best params and forecaster chosen:")
-    st.json(load_json(Path(train_config.best_params)))
+        # best params and forecaster chosen
+        st.write("Best params and forecaster chosen:")
+        st.json(load_json(BASE_DIR / Path(train_config.best_params)))
 
-    # evaluation results
-    st.write("Evaluation results:")
-    st.json(load_json(Path(eval_config.scores)))
-    st.image(
-        eval_config.forecast_vs_actual_plot,
-        caption="Forecast vs Actual Plot (for the test data)",
-    )
-
-    # forecasted values
-    st.write("Forecasted values:")
-    forecasted_values = pd.read_csv(forecasting_config.forecast_data)
-    st.dataframe(forecasted_values)
-    st.image(
-        forecasting_config.forecast_plot,
-        caption="Forecast Plot (based on given fh)",
-    )
-
-    # final trained model for download
-    with open(train_config.model, "rb") as f:
-        st.download_button(
-            label="Download the final model",
-            data=f,
-            file_name="model.joblib",
-            mime="application/octet-stream",
+        # evaluation results
+        st.write("Evaluation results:")
+        st.json(load_json(BASE_DIR / Path(eval_config.scores)))
+        st.image(
+            eval_config.forecast_vs_actual_plot,
+            caption="Forecast vs Actual Plot (for the test data)",
         )
+
+        # forecasted values
+        st.write("Forecasted values:")
+        forecasted_values = pd.read_csv(BASE_DIR / Path(forecasting_config.forecast_data))
+        st.dataframe(forecasted_values)
+        st.image(
+            BASE_DIR / Path(forecasting_config.forecast_plot),
+            caption="Forecast Plot (based on given fh)",
+        )
+
+        # final trained model for download
+        with open(BASE_DIR / Path(train_config.model), "rb") as f:
+            st.download_button(
+                label="Download the final model",
+                data=f,
+                file_name="model.joblib",
+                mime="application/octet-stream",
+            )
+    except Exception as e:
+        # Report Issue
+        st.markdown("---")
+        st.markdown(
+            "Facing an issue or have a feature request? "
+            "[Open an issue](https://github.com/sanskarmodi8/AUTOFORECAST/issues) "
+            "on our GitHub repository."
+        )
+        raise e
 
 # Report Issue
 st.markdown("---")
