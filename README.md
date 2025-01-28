@@ -104,7 +104,8 @@ streamlit run app.py
 
 ## 🔮 Future Goals  
 
-- [ ] Add support for more of the sktime estimators .  
+- [ ] Deploy on a powerful instance with atleast 16gb ram.  
+- [ ] Add support for more of the sktime estimators.  
 - [ ] Add support for multivariate forecasting.  
 - [ ] Add support for forecasting with exogenous data.
 

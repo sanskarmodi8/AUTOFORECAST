@@ -6,8 +6,9 @@ It handles data upload, preprocessing, model training, and forecasting visualiza
 
 import csv
 import os
-from pathlib import Path
 import shutil
+from pathlib import Path
+
 import joblib
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -31,8 +32,13 @@ from src.AUTOFORECAST.utils.common import create_directories, load_json, save_ya
 # Define base directory
 BASE_DIR = Path(__file__).resolve().parent
 
+# Initialize global variables
+df = None
+target_column = None
+
 # Set environment variables
 os.environ["AUTO_OPEN_DASHBOARD"] = "False"
+
 
 def clear_previous_results():
     """
@@ -42,9 +48,9 @@ def clear_previous_results():
     paths_to_clear = [
         BASE_DIR / DATA_DIR.parent,
         BASE_DIR / Path("temp_image"),
-        BASE_DIR / Path(PARAMS_FILE_PATH)
+        BASE_DIR / Path(PARAMS_FILE_PATH),
     ]
-    
+
     for path in paths_to_clear:
         if path.exists():
             try:
@@ -53,34 +59,36 @@ def clear_previous_results():
             except Exception as e:
                 logger.warning(f"Failed to clear {path}: {e}")
 
+
 def process_data_upload(data):
     """
     Load and preprocess the uploaded dataset.
-    
+
     Args:
         data: Uploaded file object from Streamlit
-        
+
     Returns:
         pandas.DataFrame: Cleaned and processed dataframe
     """
     content = data.getvalue().decode("utf-8")
     delimiter = csv.Sniffer().sniff(content).delimiter
     df = pd.read_csv(data, sep=delimiter)
-    
+
     # Clean column names
     df.columns = df.columns.str.lower()
     df.columns = df.columns.str.replace(" ", "")
     df = df.drop_duplicates()
-    
+
     return df
+
 
 def set_datetime_index(df):
     """
     Set the datetime index based on available datetime columns.
-    
+
     Args:
         df: Input DataFrame
-        
+
     Returns:
         pandas.DataFrame: DataFrame with datetime index
     """
@@ -102,15 +110,16 @@ def set_datetime_index(df):
         df["datetime"] = pd.to_datetime(df[datetime])
         if datetime != "datetime":
             df = df.drop(datetime, axis=1)
-    
+
     df.sort_values("datetime", inplace=True)
     df.set_index("datetime", inplace=True)
     return df
 
+
 def save_final_dataset(df, target_column):
     """
     Save the processed dataset for forecasting.
-    
+
     Args:
         df: Processed DataFrame
         target_column: Name of the target variable
@@ -119,14 +128,14 @@ def save_final_dataset(df, target_column):
     create_directories([BASE_DIR / DATA_DIR])
     y.to_csv(f"{BASE_DIR / DATA_DIR}/y.csv")
 
-@st.cache_data(ttl="10m", show_spinner=False)
+
 def load_results(_run_id):
     """
     Load and cache results from the forecasting run.
-    
+
     Args:
         _run_id: Unique identifier for the current run (used for cache busting)
-        
+
     Returns:
         dict: Dictionary containing all results and paths
     """
@@ -134,15 +143,18 @@ def load_results(_run_id):
     forecasting_config = config.get_forecasting_config()
     eval_config = config.get_model_evaluation_config()
     train_config = config.get_preprocessing_and_training_config()
-    
+
     return {
-        'best_params': load_json(BASE_DIR / Path(train_config.best_params)),
-        'scores': load_json(BASE_DIR / Path(eval_config.scores)),
-        'forecast_vs_actual_plot': BASE_DIR / Path(eval_config.forecast_vs_actual_plot),
-        'forecasted_values': pd.read_csv(BASE_DIR / Path(forecasting_config.forecast_data)),
-        'forecast_plot': BASE_DIR / Path(forecasting_config.forecast_plot),
-        'model_path': BASE_DIR / Path(train_config.model)
+        "best_params": load_json(BASE_DIR / Path(train_config.best_params)),
+        "scores": load_json(BASE_DIR / Path(eval_config.scores)),
+        "forecast_vs_actual_plot": BASE_DIR / Path(eval_config.forecast_vs_actual_plot),
+        "forecasted_values": pd.read_csv(
+            BASE_DIR / Path(forecasting_config.forecast_data)
+        ),
+        "forecast_plot": BASE_DIR / Path(forecasting_config.forecast_plot),
+        "model_path": BASE_DIR / Path(train_config.model),
     }
+
 
 # Initialize session state variables
 if "run_id" not in st.session_state:
@@ -186,9 +198,6 @@ if data is not None:
 
     st.markdown("---")
 
-    # Save processed data
-    save_final_dataset(df, target_column)
-
 # Forecasting Parameters Section
 fh = st.number_input(
     "Select forecast horizon (fh):",
@@ -205,7 +214,9 @@ transformations = st.multiselect(
     help="Transformers are used to preprocess the data before forecasting. You can select none or multiple transformers.",
 )
 if len(transformations) > 1:
-    st.info("⚠️\nThe more transformers you select, the more time it will take to forecast.")
+    st.info(
+        "⚠️\nThe more transformers you select, the more time it will take to forecast."
+    )
 
 # Model Selection
 models = st.multiselect(
@@ -229,6 +240,10 @@ st.write(" ")
 
 # Forecast Button and Processing
 if st.button("Forecast"):
+
+    # Clear previous results
+    clear_previous_results()
+
     # Increment run ID to force new execution
     st.session_state.run_id += 1
 
@@ -243,14 +258,19 @@ if st.button("Forecast"):
         "chosen_models": models,
         "chosen_metrics": metrics,
         "fh": fh,
-        "run_id": st.session_state.run_id
+        "run_id": st.session_state.run_id,
     }
-    
+
     create_directories([BASE_DIR / Path(PARAMS_FILE_PATH).parent])
     save_yaml(params, BASE_DIR / PARAMS_FILE_PATH)
 
+    # Save final dataset
+    save_final_dataset(df, target_column)
+
     # Run forecasting pipeline
-    with st.spinner("Hang tight! Forecasting might take a while. Perfect time to grab a ☕"):
+    with st.spinner(
+        "Hang tight! Forecasting might take a while. Perfect time to grab a ☕"
+    ):
         try:
             os.system("zenml up")
             os.system("zenml init")
@@ -269,38 +289,32 @@ if st.session_state.flag:
     try:
         # Load results with cache busting
         results = load_results(st.session_state.run_id)
-        
+
         # Display best parameters and model
         st.write("Best params and forecaster chosen:")
-        st.json(results['best_params'])
-        
+        st.json(results["best_params"])
+
         # Display evaluation results
         st.write("Evaluation results:")
-        st.json(results['scores'])
+        st.json(results["scores"])
         st.image(
-            results['forecast_vs_actual_plot'],
-            caption="Forecast vs Actual Plot (for the test data)"
+            results["forecast_vs_actual_plot"],
+            caption="Forecast vs Actual Plot (for the test data)",
         )
-        
+
         # Display forecasted values
         st.write("Forecasted values:")
-        st.dataframe(results['forecasted_values'])
-        st.image(
-            results['forecast_plot'],
-            caption="Forecast Plot (based on given fh)"
-        )
-        
+        st.dataframe(results["forecasted_values"])
+        st.image(results["forecast_plot"], caption="Forecast Plot (based on given fh)")
+
         # Model download option
-        with open(results['model_path'], "rb") as f:
+        with open(results["model_path"], "rb") as f:
             st.download_button(
                 label="Download the final model",
                 data=f,
                 file_name="model.joblib",
-                mime="application/octet-stream"
+                mime="application/octet-stream",
             )
-
-        # Clear previous results
-        clear_previous_results()
 
     except Exception as e:
         st.error(f"Error loading results: {str(e)}")
