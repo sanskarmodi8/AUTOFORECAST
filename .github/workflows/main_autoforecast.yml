@@ -23,14 +23,14 @@ jobs:
       uses: docker/login-action@v2
       with:
         registry: https://autoforecast.azurecr.io/
-        username: ${{ secrets.AzureAppService_ContainerUsername_35f872cddfb64d23a110b84dba58d191 }}
-        password: ${{ secrets.AzureAppService_ContainerPassword_7ba19d7d63f744d597629d864731706a }}
+        username: ${{ secrets.AzureAppService_ContainerUsername_63237c9bc33c4bd7bab140da41b3b840 }}
+        password: ${{ secrets.AzureAppService_ContainerPassword_4ea1b8e6208149ce8805c327734f8d86 }}
 
     - name: Build and push container image to registry
       uses: docker/build-push-action@v3
       with:
         push: true
-        tags: autoforecast.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_35f872cddfb64d23a110b84dba58d191 }}/autoforecast/autoforecast/autoforecast:${{ github.sha }}
+        tags: autoforecast.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_63237c9bc33c4bd7bab140da41b3b840 }}/autoforecast/autoforecast/autoforecast/autoforecast/autoforecast:${{ github.sha }}
         file: ./Dockerfile
 
   deploy:
@@ -47,5 +47,5 @@ jobs:
       with:
         app-name: 'autoforecast'
         slot-name: 'production'
-        publish-profile: ${{ secrets.AzureAppService_PublishProfile_f863cebcd569470886054cda56b392c0 }}
-        images: 'autoforecast.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_35f872cddfb64d23a110b84dba58d191 }}/autoforecast/autoforecast/autoforecast:${{ github.sha }}'
+        publish-profile: ${{ secrets.AzureAppService_PublishProfile_76226eaa0b4f49e690650078ebe422a0 }}
+        images: 'autoforecast.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_63237c9bc33c4bd7bab140da41b3b840 }}/autoforecast/autoforecast/autoforecast/autoforecast/autoforecast:${{ github.sha }}'
