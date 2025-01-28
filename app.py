@@ -28,7 +28,7 @@ BASE_DIR = Path(__file__).resolve().parent
 # set environment variables
 os.environ["AUTO_OPEN_DASHBOARD"] = "False"
 
-# Initialize session state for the flag and is_running
+# Initialize session state for the flag
 if "flag" not in st.session_state:
     st.session_state.flag = False
 
@@ -111,9 +111,10 @@ if data is not None:
     st.dataframe(df.head())
 
     # Plot Target Column
+    create_directories([BASE_DIR / Path("temp_image")])
     plot_series(df[target_column], labels=[target_column])
-    plt.savefig("target_column_plot.png")
-    st.image("target_column_plot.png")
+    plt.savefig(BASE_DIR / Path("temp_image/target_column_plot.png"))
+    st.image(BASE_DIR / Path("temp_image/target_column_plot.png"))
     st.write(" ")
 
     st.markdown("---")
@@ -163,7 +164,6 @@ metrics = st.multiselect(
 st.write(" ")
 # Forecast Button
 if st.button("Forecast"):
-    st.session_state.is_running = True
 
     # check if the user provided data is valid
     if len(models) == 0 or len(metrics) == 0:
@@ -176,7 +176,7 @@ if st.button("Forecast"):
         "chosen_metrics": metrics,
         "fh": fh,
     }
-    save_yaml(params, PARAMS_FILE_PATH)
+    save_yaml(params, BASE_DIR / PARAMS_FILE_PATH)
     with st.spinner(
         "Hang tight! Forecasting might take a while. Perfect time to grab a ☕"
     ):
@@ -215,7 +215,7 @@ if st.session_state.flag:
         st.write("Evaluation results:")
         st.json(load_json(BASE_DIR / Path(eval_config.scores)))
         st.image(
-            eval_config.forecast_vs_actual_plot,
+            BASE_DIR / Path(eval_config.forecast_vs_actual_plot),
             caption="Forecast vs Actual Plot (for the test data)",
         )
 

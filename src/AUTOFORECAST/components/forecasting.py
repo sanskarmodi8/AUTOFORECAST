@@ -10,6 +10,9 @@ from AUTOFORECAST import logger
 from AUTOFORECAST.entity.config_entity import ForecastingConfig
 from AUTOFORECAST.utils.common import load_bin
 
+# Define base directory
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+
 
 class ForecastingStrategy(ABC):
     @abstractmethod
@@ -48,11 +51,11 @@ class UnivariateForecastingStrategy(ForecastingStrategy):
             y_pred,
             labels=["y_train", "y_test", "forecast_with_given_fh"],
         )
-        plt.savefig(config.forecast_plot)
+        plt.savefig(BASE_DIR / Path(config.forecast_plot))
 
         # save forecast as csv
         forecast_data = pd.DataFrame(y_pred)
-        forecast_data.to_csv(Path(config.forecast_data), index=False)
+        forecast_data.to_csv(f"{BASE_DIR / Path(config.forecast_data)}", index=False)
 
 
 class Forecasting:
@@ -72,10 +75,14 @@ class Forecasting:
         """
         self.config = config
         self.y_test = pd.read_csv(
-            Path(config.test_data_dir) / Path("y.csv"), parse_dates=True, index_col=0
+            f"{BASE_DIR / Path(config.test_data_dir)}/y.csv",
+            parse_dates=True,
+            index_col=0,
         )
         self.y_train = pd.read_csv(
-            Path(config.train_data_dir) / Path("y.csv"), parse_dates=True, index_col=0
+            f"{BASE_DIR / Path(config.train_data_dir)}/y.csv",
+            parse_dates=True,
+            index_col=0,
         )
 
         if len(self.y_train.columns) == 1:

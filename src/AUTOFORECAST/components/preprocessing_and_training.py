@@ -29,6 +29,9 @@ from AUTOFORECAST.constants import AVAIL_MODELS_GRID, AVAIL_TRANSFORMERS_GRID, D
 from AUTOFORECAST.entity.config_entity import PreprocessingAndTrainingConfig
 from AUTOFORECAST.utils.common import load_json, save_bin, save_json
 
+# Define base directory
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+
 
 class PreprocessingAndTrainingStrategy(ABC):
     @abstractmethod
@@ -182,10 +185,14 @@ class UnivariateWithoutExogData(PreprocessingAndTrainingStrategy):
                 raise ValueError("Not enough training data points after splitting")
 
             # Save test data and train data
-            train_data_path = Path(config.train_data_dir) / Path("y.csv")
-            y_train.to_csv(train_data_path)
-            test_data_path = Path(config.test_data_dir) / Path("y.csv")
-            y_test.to_csv(test_data_path)
+            create_directories(
+                [
+                    BASE_DIR / Path(config.train_data_dir),
+                    BASE_DIR / Path(config.test_data_dir),
+                ]
+            )
+            y_train.to_csv(f"{BASE_DIR / Path(config.train_data_dir)}/y.csv")
+            y_test.to_csv(f"{BASE_DIR / Path(config.test_data_dir)}/y.csv")
 
             # Set up cross-validation
             fh = np.arange(1, len(y_test) + 1)
@@ -327,8 +334,10 @@ class UnivariateWithoutExogData(PreprocessingAndTrainingStrategy):
                 raise ValueError("No models were successfully trained")
 
             # Save results
-            save_bin(best_model, Path(config.model))
-            save_json(Path(config.best_params), best_params)
+            logger.info(f"Best model: {best_model}")
+            logger.info(f"Best params: {best_params}")
+            save_bin(best_model, BASE_DIR / Path(config.model))
+            save_json(BASE_DIR / Path(config.best_params), best_params)
 
         except Exception as e:
             logger.error(f"Error in univariate strategy: {str(e)}")

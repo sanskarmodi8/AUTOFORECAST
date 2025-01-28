@@ -172,7 +172,7 @@ cython_debug/
 
 
 # ignore temp files and folders
-/tmp/artifacts/
+artifacts/
 params.yaml
 
-target_column_plot.png
+temp_img/

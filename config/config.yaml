@@ -1,29 +1,29 @@
 # base configuration for each component of the pipeline
 
 data_analysis:
-  root_dir: /tmp/artifacts/data_analysis
-  data_summary: /tmp/artifacts/data_analysis/data_summary.json
+  root_dir: artifacts/data_analysis
+  data_summary: artifacts/data_analysis/data_summary.json
 
 preprocessing_and_training:
-  root_dir: /tmp/artifacts/preprocessing_and_training
-  data_summary: /tmp/artifacts/data_analysis/data_summary.json
-  model: /tmp/artifacts/preprocessing_and_training/model.joblib
-  train_data_dir: /tmp/artifacts/preprocessing_and_training/train_data
-  test_data_dir: /tmp/artifacts/preprocessing_and_training/test_data
-  best_params: /tmp/artifacts/preprocessing_and_training/best_params.json
+  root_dir: artifacts/preprocessing_and_training
+  data_summary: artifacts/data_analysis/data_summary.json
+  model: artifacts/preprocessing_and_training/model.joblib
+  train_data_dir: artifacts/preprocessing_and_training/train_data
+  test_data_dir: artifacts/preprocessing_and_training/test_data
+  best_params: artifacts/preprocessing_and_training/best_params.json
 
 model_evaluation:
-  root_dir: /tmp/artifacts/model_evaluation
-  model: /tmp/artifacts/preprocessing_and_training/model.joblib
-  train_data_dir: /tmp/artifacts/preprocessing_and_training/train_data
-  test_data_dir: /tmp/artifacts/preprocessing_and_training/test_data
-  scores: /tmp/artifacts/model_evaluation/scores.json
-  forecast_vs_actual_plot: /tmp/artifacts/model_evaluation/forecast_vs_actual.png
+  root_dir: artifacts/model_evaluation
+  model: artifacts/preprocessing_and_training/model.joblib
+  train_data_dir: artifacts/preprocessing_and_training/train_data
+  test_data_dir: artifacts/preprocessing_and_training/test_data
+  scores: artifacts/model_evaluation/scores.json
+  forecast_vs_actual_plot: artifacts/model_evaluation/forecast_vs_actual.png
 
 forecasting:
-  root_dir: /tmp/artifacts/forecasting
-  train_data_dir: /tmp/artifacts/preprocessing_and_training/train_data
-  test_data_dir: /tmp/artifacts/preprocessing_and_training/test_data
-  model: /tmp/artifacts/preprocessing_and_training/model.joblib
-  forecast_plot: /tmp/artifacts/forecasting/forecast.png
-  forecast_data: /tmp/artifacts/forecasting/forecast_data.csv
+  root_dir: artifacts/forecasting
+  train_data_dir: artifacts/preprocessing_and_training/train_data
+  test_data_dir: artifacts/preprocessing_and_training/test_data
+  model: artifacts/preprocessing_and_training/model.joblib
+  forecast_plot: artifacts/forecasting/forecast.png
+  forecast_data: artifacts/forecasting/forecast_data.csv

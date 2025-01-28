@@ -9,12 +9,15 @@ from AUTOFORECAST.entity.config_entity import (
 )
 from AUTOFORECAST.utils.common import create_directories, read_yaml
 
+# Define base directory
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+
 
 class ConfigurationManager:
     def __init__(self):
         # read the configurations file and parameters file
-        self.params = read_yaml(PARAMS_FILE_PATH)
-        self.config = read_yaml(CONFIG_FILE_PATH)
+        self.params = read_yaml(BASE_DIR / PARAMS_FILE_PATH)
+        self.config = read_yaml(BASE_DIR / CONFIG_FILE_PATH)
 
     def get_data_analysis_config(self) -> DataAnalysisConfig:
         """
@@ -24,7 +27,7 @@ class ConfigurationManager:
             DataAnalysisConfig: The configuration for data analysis.
         """
         config = self.config.data_analysis
-        create_directories([Path(config.root_dir)])
+        create_directories([BASE_DIR / Path(config.root_dir)])
         return DataAnalysisConfig(
             root_dir=config.root_dir, data_summary=config.data_summary
         )
@@ -39,9 +42,9 @@ class ConfigurationManager:
         config = self.config.preprocessing_and_training
         create_directories(
             [
-                Path(config.root_dir),
-                Path(config.test_data_dir),
-                Path(config.train_data_dir),
+                BASE_DIR / Path(config.root_dir),
+                BASE_DIR / Path(config.test_data_dir),
+                BASE_DIR / Path(config.train_data_dir),
             ]
         )
         return PreprocessingAndTrainingConfig(
@@ -63,7 +66,7 @@ class ConfigurationManager:
             ModelEvaluationConfig: The configuration for model evaluation.
         """
         config = self.config.model_evaluation
-        create_directories([Path(config.root_dir)])
+        create_directories([BASE_DIR / Path(config.root_dir)])
         return ModelEvaluationConfig(
             root_dir=config.root_dir,
             model=config.model,
@@ -82,7 +85,7 @@ class ConfigurationManager:
             ForecastingConfig: The configuration for forecasting.
         """
         config = self.config.forecasting
-        create_directories([Path(config.root_dir)])
+        create_directories([BASE_DIR / Path(config.root_dir)])
         return ForecastingConfig(
             root_dir=config.root_dir,
             model=config.model,

@@ -19,6 +19,9 @@ from AUTOFORECAST.constants import AVAIL_METRICS
 from AUTOFORECAST.entity.config_entity import ModelEvaluationConfig
 from AUTOFORECAST.utils.common import load_bin, save_json
 
+# Define base directory
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+
 
 class ModelEvaluationStrategy(ABC):
     @abstractmethod
@@ -52,7 +55,7 @@ class UnivariateWithoutExogData(ModelEvaluationStrategy):
         y_pred.index = y_pred.index.to_timestamp()
 
         plot_series(y_train, y_test, y_pred, labels=["y_train", "y_test", "y_pred"])
-        plt.savefig(config.forecast_vs_actual_plot)
+        plt.savefig(BASE_DIR / Path(config.forecast_vs_actual_plot))
 
         # Evaluate model on each of the chosen metrics
         scores = {}
@@ -80,7 +83,7 @@ class UnivariateWithoutExogData(ModelEvaluationStrategy):
 
         # save scores
         logger.info(f"Evaluated scores : {scores}")
-        save_json(Path(config.scores), scores)
+        save_json(BASE_DIR / Path(config.scores), scores)
 
 
 class ModelEvaluation:
@@ -106,7 +109,9 @@ class ModelEvaluation:
         try:
             # Load target variable data
             self.y_test = pd.read_csv(
-                self.config.test_data_dir / Path("y.csv"), index_col=0, parse_dates=True
+                f"{BASE_DIR / Path(config.test_data_dir)}/y.csv",
+                index_col=0,
+                parse_dates=True,
             )
             if len(self.y_test) == 0:
                 raise ValueError("Empty target variable data")
@@ -116,7 +121,7 @@ class ModelEvaluation:
         try:
             # load the train data for plotting
             self.y_train = pd.read_csv(
-                self.config.train_data_dir / Path("y.csv"),
+                f"{BASE_DIR / Path(config.train_data_dir)}/y.csv",
                 index_col=0,
                 parse_dates=True,
             )
@@ -127,7 +132,7 @@ class ModelEvaluation:
         try:
             # load feature data if available
             self.x_test = pd.read_csv(
-                Path(config.test_data_dir) / Path("X.csv"),
+                f"{BASE_DIR / Path(config.test_data_dir)}/X.csv",
                 index_col=0,
                 parse_dates=True,
             )
