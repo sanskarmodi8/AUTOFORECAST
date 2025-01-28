@@ -231,9 +231,6 @@ st.write(" ")
 if st.button("Forecast"):
     # Increment run ID to force new execution
     st.session_state.run_id += 1
-    
-    # Clear previous results
-    clear_previous_results()
 
     # Validate user inputs
     if len(models) == 0 or len(metrics) == 0:
@@ -264,6 +261,7 @@ if st.button("Forecast"):
         except Exception as e:
             st.error(f"Error during forecasting: {str(e)}")
             logger.error(f"Forecasting pipeline error: {e}")
+            clear_previous_results()
             raise e
 
 # Results Display Section
@@ -300,9 +298,14 @@ if st.session_state.flag:
                 file_name="model.joblib",
                 mime="application/octet-stream"
             )
+
+        # Clear previous results
+        clear_previous_results()
+
     except Exception as e:
         st.error(f"Error loading results: {str(e)}")
         logger.error(f"Error loading results: {e}")
+        clear_previous_results()
         raise e
 
 # Footer with Issue Reporting Link
