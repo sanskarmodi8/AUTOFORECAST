@@ -11,7 +11,7 @@ from statsmodels.tsa.stattools import adfuller
 from AUTOFORECAST import logger
 from AUTOFORECAST.constants import DATA_DIR
 from AUTOFORECAST.entity.config_entity import DataAnalysisConfig
-from AUTOFORECAST.utils.common import save_json
+from AUTOFORECAST.utils.common import create_directories, save_json
 
 
 class AnalysisStrategy(ABC):

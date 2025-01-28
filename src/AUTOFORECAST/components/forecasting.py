@@ -8,7 +8,7 @@ from sktime.utils.plotting import plot_series
 
 from AUTOFORECAST import logger
 from AUTOFORECAST.entity.config_entity import ForecastingConfig
-from AUTOFORECAST.utils.common import load_bin
+from AUTOFORECAST.utils.common import create_directories, load_bin
 
 # Define base directory
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent

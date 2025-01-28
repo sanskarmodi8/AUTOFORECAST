@@ -17,7 +17,7 @@ from sktime.utils.plotting import plot_series
 from AUTOFORECAST import logger
 from AUTOFORECAST.constants import AVAIL_METRICS
 from AUTOFORECAST.entity.config_entity import ModelEvaluationConfig
-from AUTOFORECAST.utils.common import load_bin, save_json
+from AUTOFORECAST.utils.common import create_directories, load_bin, save_json
 
 # Define base directory
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent

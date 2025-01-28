@@ -27,7 +27,7 @@ from sktime.transformations.series.impute import Imputer
 from AUTOFORECAST import logger
 from AUTOFORECAST.constants import AVAIL_MODELS_GRID, AVAIL_TRANSFORMERS_GRID, DATA_DIR
 from AUTOFORECAST.entity.config_entity import PreprocessingAndTrainingConfig
-from AUTOFORECAST.utils.common import load_json, save_bin, save_json
+from AUTOFORECAST.utils.common import create_directories, load_json, save_bin, save_json
 
 # Define base directory
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
