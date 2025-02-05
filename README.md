@@ -108,6 +108,7 @@ streamlit run app.py
 - [ ] Add support for more of the sktime estimators.  
 - [ ] Add support for multivariate forecasting.  
 - [ ] Add support for forecasting with exogenous data.
+- [ ] Add chabot to furhter simplify the whole process for non techinal users.
 
 <br/>
 
